@@ -16,6 +16,7 @@ export interface UserInfo {
   username: string
   nickname: string
   email: string
+  phone: string
   avatar: string
   is_superuser: boolean
   permissions: string[]

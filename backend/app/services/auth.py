@@ -15,7 +15,7 @@ from app.core.auth import (
 )
 from app.core.config import settings
 from app.core.response import AppError
-from app.core.security import verify_password
+from app.core.security import hash_password, verify_password
 from app.models.user import User
 
 
@@ -72,3 +72,26 @@ async def logout(user_id: int, refresh_token: str | None) -> None:
             pass
     else:
         await revoke_refresh_token(user_id)
+
+
+async def change_password(
+    db: AsyncSession, user: User, old_password: str, new_password: str
+) -> None:
+    """修改密码：校验旧密码后更新哈希。"""
+    if not verify_password(old_password, user.password_hash):
+        raise AppError(400, "原密码错误")
+    if old_password == new_password:
+        raise AppError(400, "新密码不能与原密码相同")
+    user.password_hash = hash_password(new_password)
+    await db.commit()
+
+
+async def update_profile(db: AsyncSession, user: User, data: dict) -> User:
+    """更新个人资料：仅 nickname/email/phone/avatar（白名单在 schema 层已限定）。"""
+    for key, value in data.items():
+        if value is None:
+            continue
+        setattr(user, key, value)
+    await db.commit()
+    await db.refresh(user)
+    return user

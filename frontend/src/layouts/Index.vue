@@ -19,6 +19,11 @@ const nickname = computed(() => userStore.userInfo?.nickname || userStore.userIn
 const isSuper = computed(() => userStore.isSuperuser)
 const appTitle = import.meta.env.VITE_APP_TITLE
 
+function handleCommand(cmd: string) {
+  if (cmd === 'logout') handleLogout()
+  else if (cmd === 'profile') router.push('/profile')
+}
+
 async function handleLogout() {
   try {
     await ElMessageBox.confirm('确定退出登录吗？', '提示', { type: 'warning' })
@@ -61,9 +66,9 @@ async function handleLogout() {
               <Sunny v-else />
             </el-icon>
           </el-tooltip>
-          <el-dropdown @command="(cmd: string) => cmd === 'logout' && handleLogout()">
+          <el-dropdown @command="handleCommand">
             <span class="user-info">
-              <el-avatar :size="28" class="user-avatar">{{
+              <el-avatar :size="28" class="user-avatar" :src="userStore.userInfo?.avatar || ''">{{
                 nickname.charAt(0).toUpperCase()
               }}</el-avatar>
               <span class="user-name">{{ nickname }}</span>
@@ -73,7 +78,8 @@ async function handleLogout() {
             </span>
             <template #dropdown>
               <el-dropdown-menu>
-                <el-dropdown-item command="logout">退出登录</el-dropdown-item>
+                <el-dropdown-item command="profile">个人中心</el-dropdown-item>
+                <el-dropdown-item command="logout" divided>退出登录</el-dropdown-item>
               </el-dropdown-menu>
             </template>
           </el-dropdown>

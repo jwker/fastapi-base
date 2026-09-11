@@ -23,6 +23,21 @@ const constantRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/error/404.vue'),
     meta: { title: '未找到' },
   },
+  {
+    // 个人中心：所有登录用户可用，不走后端菜单权限
+    path: '/profile',
+    name: 'Profile',
+    component: () => import('@/layouts/Index.vue'),
+    meta: { title: '个人中心' },
+    children: [
+      {
+        path: '',
+        name: 'ProfilePage',
+        component: () => import('@/views/Profile.vue'),
+        meta: { title: '个人中心' },
+      },
+    ],
+  },
 ]
 
 const router = createRouter({

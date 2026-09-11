@@ -19,6 +19,10 @@ export const authApi = {
   logout: (refresh_token?: string) =>
     request.post<ApiResponse<null>>('/auth/logout', refresh_token ? { refresh_token } : {}),
   me: () => request.get<ApiResponse<import('@/types').UserInfo>>('/auth/me'),
+  changePassword: (old_password: string, new_password: string) =>
+    request.post<ApiResponse<null>>('/auth/change-password', { old_password, new_password }),
+  updateProfile: (data: Record<string, unknown>) =>
+    request.put<ApiResponse<import('@/types').UserInfo>>('/auth/profile', data),
 }
 
 // ---------- 用户 ----------

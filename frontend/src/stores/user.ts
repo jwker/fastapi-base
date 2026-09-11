@@ -41,6 +41,16 @@ export const useUserStore = defineStore('user', {
       const res = await authApi.me()
       this.userInfo = res.data
     },
+    /** 更新个人资料（昵称/邮箱/手机/头像），成功后同步本地 userInfo */
+    async updateProfile(data: Record<string, unknown>) {
+      const res = await authApi.updateProfile(data)
+      this.userInfo = res.data
+    },
+    /** 修改密码：后端已吊销全部凭证，成功后清空本地登录态（页面负责跳转登录页） */
+    async changePassword(old_password: string, new_password: string) {
+      await authApi.changePassword(old_password, new_password)
+      this.$reset()
+    },
     async logout() {
       try {
         await authApi.logout(this.refreshToken)
