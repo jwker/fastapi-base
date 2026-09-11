@@ -52,6 +52,8 @@ const props = withDefaults(
     createPermission?: string
     onCreate?: () => void
     pageSize?: number
+    /** 额外查询参数（筛选条件），函数形式：每次请求时现算，保证筛选变化即时生效 */
+    extraParams?: () => Record<string, unknown>
   }>(),
   {
     searchPlaceholder: '请输入关键字',
@@ -61,6 +63,7 @@ const props = withDefaults(
     createLabel: '',
     createPermission: '',
     pageSize: 10,
+    extraParams: () => ({}),
   },
 )
 
@@ -80,6 +83,7 @@ async function loadData() {
       page: page.value,
       page_size: pageSize.value,
       keyword: keyword.value || undefined,
+      ...(props.extraParams?.() ?? {}),
     })
     list.value = res.data.items
     total.value = res.data.total

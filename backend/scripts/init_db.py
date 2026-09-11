@@ -35,6 +35,9 @@ PERMISSIONS: list[dict] = [
     # 权限
     {"name": "权限查询", "code": "permission:read", "resource": "permission", "action": "read"},
     {"name": "权限分配", "code": "permission:assign", "resource": "permission", "action": "assign"},
+    # 审计日志
+    {"name": "操作日志查询", "code": "audit:read", "resource": "audit", "action": "read"},
+    {"name": "操作日志删除", "code": "audit:delete", "resource": "audit", "action": "delete"},
 ]
 
 # 角色：code -> (名称, 描述, 权限码集合)
@@ -58,6 +61,8 @@ ROLES: dict[str, tuple[str, str, list[str]]] = {
             "menu:delete",
             "permission:read",
             "permission:assign",
+            "audit:read",
+            "audit:delete",
         ],
     ),
     "user": (
@@ -116,6 +121,14 @@ MENUS: list[dict] = [
                 "permission_code": "menu:read",
                 "children": [],
             },
+            {
+                "name": "操作日志",
+                "path": "/audit-logs",
+                "component": "AuditLogList",
+                "icon": "Document",
+                "permission_code": "audit:read",
+                "children": [],
+            },
         ],
     },
 ]
@@ -168,52 +181,39 @@ async def init_superuser(db, super_admin_role: Role) -> None:
         db.add(user)
 
 
-def _build_menus(db, items: list[dict], parent_id: int | None = None) -> list[Menu]:
-    nodes: list[Menu] = []
-    for item in items:
-        menu = Menu(
-            name=item["name"],
-            path=item["path"],
-            component=item.get("component", ""),
-            icon=item.get("icon", ""),
-            permission_code=item.get("permission_code"),
-            parent_id=parent_id,
-        )
-        db.add(menu)
-        nodes.append(menu)
-    return nodes
-
-
 async def init_menus(db, roles: dict[str, Role]) -> None:
     """插入菜单并同步角色菜单分配。
 
-    - 菜单插入幂等（已有则跳过）
+    - 菜单插入幂等 + **增量补缺**：按 (path, parent_id) 逐条查找，缺的补插
+      （旧实现"表空才建"导致已有库新增菜单不生效）
     - 角色分配每次执行都同步：admin、user 角色分配全部菜单（主流 RBAC：
       菜单显示 = 角色分配，权限码只做按钮/接口校验）
     """
     from sqlalchemy.orm import selectinload
 
-    existing = (await db.execute(select(Menu.id).limit(1))).scalar_one_or_none()
-    if existing is None:
-        # 先 flush 出父菜单 id，再递归建子菜单
-        async def build(items: list[dict], parent: Menu | None = None) -> list[Menu]:
-            nodes: list[Menu] = []
-            for item in items:
+    async def sync(items: list[dict], parent_id: int | None = None) -> None:
+        for item in items:
+            menu = (
+                await db.execute(
+                    select(Menu).where(
+                        Menu.path == item["path"], Menu.parent_id == parent_id
+                    )
+                )
+            ).scalar_one_or_none()
+            if menu is None:
                 menu = Menu(
                     name=item["name"],
                     path=item["path"],
                     component=item.get("component", ""),
                     icon=item.get("icon", ""),
                     permission_code=item.get("permission_code"),
-                    parent_id=parent.id if parent else None,
+                    parent_id=parent_id,
                 )
                 db.add(menu)
-                await db.flush()  # 立即拿 id
-                nodes.append(menu)
-                nodes.extend(await build(item.get("children", []), menu))
-            return nodes
+                await db.flush()  # 立即拿 id 供子菜单关联
+            await sync(item.get("children", []), menu.id)
 
-        await build(MENUS)
+    await sync(MENUS)
 
     all_menus = (await db.execute(select(Menu))).scalars().all()
     for code in ("admin", "user"):

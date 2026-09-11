@@ -1,6 +1,7 @@
 import request from '@/utils/request'
 import type {
   ApiResponse,
+  AuditLogRecord,
   LoginResult,
   MenuItem,
   PageResult,
@@ -78,4 +79,26 @@ export interface StatsOverview {
 
 export const statsApi = {
   overview: () => request.get<ApiResponse<StatsOverview>>('/stats/overview'),
+}
+
+// ---------- 操作审计日志 ----------
+export interface AuditLogQuery {
+  page: number
+  page_size: number
+  keyword?: string
+  username?: string
+  module?: string
+  action?: string
+  status?: number
+  start_time?: string
+  end_time?: string
+}
+
+export const auditLogApi = {
+  list: (params: AuditLogQuery) =>
+    request.get<ApiResponse<PageResult<AuditLogRecord>>>('/audit-logs', { params }),
+  export: (params: AuditLogQuery) =>
+    request.get<Blob>('/audit-logs/export', { params, responseType: 'blob' }),
+  remove: (params: AuditLogQuery & { end_time: string }) =>
+    request.delete<ApiResponse<{ deleted: number }>>('/audit-logs', { params }),
 }

@@ -8,10 +8,11 @@ from fastapi.responses import JSONResponse
 from prometheus_fastapi_instrumentator import Instrumentator
 from slowapi.errors import RateLimitExceeded
 
-from app.api.v1 import auth, menus, permissions, roles, stats, users
+from app.api.v1 import audit_logs, auth, menus, permissions, roles, stats, users
 from app.core.config import settings
 from app.core.logging import setup_logging
 from app.core.response import AppError, app_error_handler, success
+from app.middleware.audit import AuditMiddleware
 from app.middleware.log import RequestLogMiddleware
 from app.middleware.request_id import RequestIDMiddleware
 
@@ -34,7 +35,9 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# 中间件（后添加的先执行，故顺序：RequestID → CORS → Log）
+# 中间件（后添加的先执行，故顺序：Audit → RequestID → CORS → Log）
+# Audit 置于最外层：覆盖所有写请求，旁路缓存 body，不影响业务读取
+app.add_middleware(AuditMiddleware)
 app.add_middleware(RequestLogMiddleware)
 app.add_middleware(
     CORSMiddleware,
@@ -63,6 +66,7 @@ app.include_router(roles.router, prefix=settings.API_V1_PREFIX)
 app.include_router(permissions.router, prefix=settings.API_V1_PREFIX)
 app.include_router(menus.router, prefix=settings.API_V1_PREFIX)
 app.include_router(stats.router, prefix=settings.API_V1_PREFIX)
+app.include_router(audit_logs.router, prefix=settings.API_V1_PREFIX)
 
 
 @app.get("/health", tags=["系统"])

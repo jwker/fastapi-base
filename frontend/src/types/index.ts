@@ -79,3 +79,18 @@ export interface PermissionRecord {
   description: string
   created_at: string
 }
+
+export interface AuditLogRecord {
+  id: number
+  user_id: number | null
+  username: string
+  module: string
+  action: string
+  method: string
+  path: string
+  request_body: string
+  response_status: number
+  ip: string
+  user_agent: string
+  created_at: string
+}
