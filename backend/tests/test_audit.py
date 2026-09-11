@@ -10,9 +10,7 @@ from app.models.operation_log import OperationLog
 async def _logs() -> list[OperationLog]:
     async with AsyncSessionLocal() as db:
         return (
-            (
-                await db.execute(select(OperationLog).order_by(OperationLog.id.desc()))
-            )
+            (await db.execute(select(OperationLog).order_by(OperationLog.id.desc())))
             .scalars()
             .all()
         )
@@ -94,9 +92,7 @@ async def test_failed_login_logged_anonymous(client):
 @pytest.mark.asyncio
 async def test_login_success_logged_with_username(client):
     """登录成功落库：记录登录名，user_id 留空（登录时无登录态）。"""
-    await client.post(
-        "/api/v1/auth/login", json={"username": "admin", "password": "admin123"}
-    )
+    await client.post("/api/v1/auth/login", json={"username": "admin", "password": "admin123"})
     logs = await _logs()
     assert logs[0].action == "login"
     assert logs[0].username == "admin"
@@ -106,9 +102,7 @@ async def test_login_success_logged_with_username(client):
 @pytest.mark.asyncio
 async def test_logout_logged_with_operator(client, admin_headers):
     """登出落库：能解析到操作人（请求进入时 token 尚未被黑名单）。"""
-    await client.post(
-        "/api/v1/auth/logout", headers=admin_headers, json={"refresh_token": "x"}
-    )
+    await client.post("/api/v1/auth/logout", headers=admin_headers, json={"refresh_token": "x"})
     logs = await _logs()
     assert logs[0].action == "logout"
     assert logs[0].username == "admin"

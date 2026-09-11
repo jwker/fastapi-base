@@ -123,8 +123,7 @@ class AuditMiddleware:
     @staticmethod
     def _headers(scope: Scope) -> dict[str, str]:
         return {
-            k.decode("latin-1").lower(): v.decode("latin-1")
-            for k, v in scope.get("headers", [])
+            k.decode("latin-1").lower(): v.decode("latin-1") for k, v in scope.get("headers", [])
         }
 
     def _client_ip(self, scope: Scope) -> str:

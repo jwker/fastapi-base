@@ -195,9 +195,7 @@ async def init_menus(db, roles: dict[str, Role]) -> None:
         for item in items:
             menu = (
                 await db.execute(
-                    select(Menu).where(
-                        Menu.path == item["path"], Menu.parent_id == parent_id
-                    )
+                    select(Menu).where(Menu.path == item["path"], Menu.parent_id == parent_id)
                 )
             ).scalar_one_or_none()
             if menu is None:

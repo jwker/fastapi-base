@@ -26,7 +26,16 @@ TimeQuery = Annotated[datetime | None, Query()]
 RequiredTimeQuery = Annotated[datetime, Query()]
 
 CSV_HEADERS = [
-    "ID", "操作人", "模块", "动作", "方法", "路径", "状态码", "IP", "操作时间", "请求参数",
+    "ID",
+    "操作人",
+    "模块",
+    "动作",
+    "方法",
+    "路径",
+    "状态码",
+    "IP",
+    "操作时间",
+    "请求参数",
 ]
 
 

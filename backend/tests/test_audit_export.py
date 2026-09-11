@@ -40,7 +40,16 @@ async def test_export_csv_content(client, admin_headers):
     rows = await _parse_csv(resp)
     # 删除动作自身也会被审计（+1 条），故 before - after = deleted - 1
     assert rows[0] == [
-        "ID", "操作人", "模块", "动作", "方法", "路径", "状态码", "IP", "操作时间", "请求参数",
+        "ID",
+        "操作人",
+        "模块",
+        "动作",
+        "方法",
+        "路径",
+        "状态码",
+        "IP",
+        "操作时间",
+        "请求参数",
     ]
     assert any(r[1] == "admin" and r[3] == "create" for r in rows)
     # 请求参数脱敏后导出
@@ -213,9 +222,7 @@ async def test_delete_itself_is_audited(client, admin_headers):
 async def _logs():
     async with AsyncSessionLocal() as db:
         return (
-            (
-                await db.execute(select(OperationLog).order_by(OperationLog.id.desc()))
-            )
+            (await db.execute(select(OperationLog).order_by(OperationLog.id.desc())))
             .scalars()
             .all()
         )
