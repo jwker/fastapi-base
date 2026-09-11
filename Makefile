@@ -1,5 +1,5 @@
 # FastAPI Base 脚手架 - 常用命令
-.PHONY: help install dev-backend dev-frontend test lint format migrate init-db \
+.PHONY: help install dev-backend dev-frontend check test lint format migrate init-db \
 	up down build logs clean
 
 help: ## 显示帮助
@@ -14,6 +14,14 @@ dev-backend: ## 启动后端开发服务(热重载)
 
 dev-frontend: ## 启动前端开发服务
 	cd frontend && pnpm dev
+
+check: ## 本地完整自检（与 GitHub CI 命令链一致，提交前必跑）
+	cd backend && uv run ruff check app tests scripts
+	cd backend && uv run ruff format --check app tests scripts
+	cd backend && PYTHONPATH=. uv run pytest
+	cd frontend && pnpm lint
+	cd frontend && pnpm test
+	cd frontend && pnpm build
 
 test: ## 运行后端测试
 	cd backend && PYTHONPATH=. uv run pytest

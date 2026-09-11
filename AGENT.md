@@ -66,6 +66,7 @@
 
 ## 测试与验证基线（改代码后自动执行）
 
-- 后端：`cd backend && PYTHONPATH=. uv run pytest`；ruff：`uv run ruff check app tests scripts`
-- 前端：`cd frontend && pnpm test`；lint：`pnpm lint`；构建：`pnpm build`
-- 提交前至少跑对应侧测试，结果记入 LOG
+- **提交前完整自检：`make check`**（与 GitHub CI 命令链完全一致，防止"本地绿、CI 红"——教训：CI 有 `ruff format --check` 而本地 Makefile 没有，导致推送后 CI 挂）
+  - 后端：`uv run ruff check app tests scripts` → `uv run ruff format --check app tests scripts` → `PYTHONPATH=. uv run pytest`
+  - 前端：`pnpm lint` → `pnpm test` → `pnpm build`
+- 任何代码改动提交前至少跑 `make check`（或对应侧），结果记入 LOG；CI 与本地检查命令若有差异，以 CI 为准补齐本地
