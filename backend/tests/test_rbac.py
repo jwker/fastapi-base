@@ -191,6 +191,31 @@ async def test_menu_tree_no_duplicate_children(client, admin_headers):
 
 
 @pytest.mark.asyncio
+async def test_stats_overview_superuser_only(client, admin_headers):
+    """统计接口仅超管可访问：超管 200，普通用户 403。"""
+    # 超管可访问
+    resp = await client.get("/api/v1/stats/overview", headers=admin_headers)
+    assert resp.status_code in (200, 201)
+    data = resp.json()["data"]
+    assert "user_count" in data
+    assert "menu_count" in data
+
+    # 普通用户 403
+    await client.post(
+        "/api/v1/users",
+        headers=admin_headers,
+        json={"username": "stats_user", "password": "stats123"},
+    )
+    login = await client.post(
+        "/api/v1/auth/login", json={"username": "stats_user", "password": "stats123"}
+    )
+    headers = {"Authorization": f"Bearer {login.json()['data']['tokens']['access_token']}"}
+    resp = await client.get("/api/v1/stats/overview", headers=headers)
+    assert resp.status_code == 403
+    assert resp.json()["code"] == 403
+
+
+@pytest.mark.asyncio
 async def test_menu_visibility_follows_role_menu_assignment(client, admin_headers):
     """角色只分配了「用户管理」菜单时，用户菜单树只含该菜单及其父级。"""
     # 1. 找到用户管理菜单 id

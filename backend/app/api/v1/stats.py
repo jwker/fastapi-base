@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.deps import CurrentUser
-from app.core.response import success
+from app.core.response import AppError, success
 from app.models.menu import Menu
 from app.models.permission import Permission
 from app.models.role import Role
@@ -20,8 +20,10 @@ DbDep = Annotated[AsyncSession, Depends(get_db)]
 
 
 @router.get("/overview")
-async def overview(db: DbDep, _: CurrentUser):
-    """仪表盘统计：用户/角色/权限/菜单数量。"""
+async def overview(db: DbDep, user: CurrentUser):
+    """仪表盘统计：仅超级管理员可见。"""
+    if not user.is_superuser:
+        raise AppError(403, "仅超级管理员可查看统计数据")
     user_count = (await db.execute(select(func.count()).select_from(User))).scalar_one()
     role_count = (await db.execute(select(func.count()).select_from(Role))).scalar_one()
     permission_count = (await db.execute(select(func.count()).select_from(Permission))).scalar_one()

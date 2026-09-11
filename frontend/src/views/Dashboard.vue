@@ -5,6 +5,7 @@ import { useUserStore } from '@/stores/user'
 
 const userStore = useUserStore()
 const nickname = computed(() => userStore.userInfo?.nickname || userStore.userInfo?.username || '')
+const isSuper = computed(() => userStore.isSuperuser)
 const date = new Date().toLocaleDateString('zh-CN', {
   year: 'numeric',
   month: 'long',
@@ -20,6 +21,8 @@ const stats = ref([
 ])
 
 onMounted(async () => {
+  // 统计数据仅超管可见，非超管不请求
+  if (!userStore.isSuperuser) return
   try {
     const res = await statsApi.overview()
     const d = res.data
@@ -43,7 +46,7 @@ onMounted(async () => {
       <p class="desc">这是 FastAPI + Vue3 全栈脚手架，登录后菜单由后端动态下发。</p>
     </el-card>
 
-    <el-row :gutter="16" class="stats-row">
+    <el-row v-if="isSuper" :gutter="16" class="stats-row">
       <el-col v-for="s in stats" :key="s.label" :span="6">
         <el-card class="stat-card">
           <el-icon :size="28" :color="s.color"><component :is="s.icon" /></el-icon>
