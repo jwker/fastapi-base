@@ -1,14 +1,16 @@
 """FastAPI 应用入口。"""
 
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from prometheus_fastapi_instrumentator import Instrumentator
 from slowapi.errors import RateLimitExceeded
 
-from app.api.v1 import audit_logs, auth, menus, permissions, roles, stats, users
+from app.api.v1 import audit_logs, auth, files, menus, permissions, roles, stats, users
 from app.core.config import settings
 from app.core.logging import setup_logging
 from app.core.response import AppError, app_error_handler, success
@@ -67,6 +69,12 @@ app.include_router(permissions.router, prefix=settings.API_V1_PREFIX)
 app.include_router(menus.router, prefix=settings.API_V1_PREFIX)
 app.include_router(stats.router, prefix=settings.API_V1_PREFIX)
 app.include_router(audit_logs.router, prefix=settings.API_V1_PREFIX)
+app.include_router(files.router, prefix=settings.API_V1_PREFIX)
+
+
+# 上传文件静态访问（开发直连 FastAPI；生产由 Nginx 托管 uploads 共享卷，不走 Python）
+Path(settings.UPLOAD_DIR).mkdir(parents=True, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads")
 
 
 @app.get("/health", tags=["系统"])

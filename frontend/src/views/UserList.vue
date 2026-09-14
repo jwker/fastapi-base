@@ -2,6 +2,7 @@
 import { onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import ProTable, { type ActionConfig, type ColumnConfig } from '@/components/ProTable.vue'
+import FileUpload from '@/components/FileUpload.vue'
 import { roleApi, userApi } from '@/api'
 import type { RoleRecord } from '@/types'
 
@@ -9,6 +10,7 @@ const tableRef = ref<InstanceType<typeof ProTable>>()
 
 const columns: ColumnConfig[] = [
   { prop: 'id', label: 'ID', width: 70 },
+  { prop: 'avatar', label: '头像', width: 70, slot: 'avatar' },
   { prop: 'username', label: '用户名', minWidth: 120 },
   { prop: 'nickname', label: '昵称', minWidth: 120 },
   { prop: 'email', label: '邮箱', minWidth: 160 },
@@ -71,6 +73,7 @@ const form = reactive({
   password: '',
   status: 1,
   role_ids: [] as number[],
+  avatar: '',
 })
 
 function openDialog(row?: any) {
@@ -84,6 +87,7 @@ function openDialog(row?: any) {
       password: '',
       status: row.status,
       role_ids: [...(row.role_ids ?? [])],
+      avatar: row.avatar || '',
     })
   } else {
     editingId.value = null
@@ -95,6 +99,7 @@ function openDialog(row?: any) {
       password: '',
       status: 1,
       role_ids: [],
+      avatar: '',
     })
   }
   dialogVisible.value = true
@@ -111,6 +116,7 @@ async function submit() {
     phone: form.phone,
     status: form.status,
     role_ids: form.role_ids,
+    avatar: form.avatar,
   }
   if (form.password) payload.password = form.password
   if (editingId.value) {
@@ -140,6 +146,9 @@ onMounted(loadRoles)
         search-placeholder="搜索用户名 / 昵称"
         :on-create="() => openDialog()"
       >
+        <template #avatar="{ row }">
+          <el-avatar :size="30" :src="row.avatar || undefined">{{ (row.nickname || row.username || '?').slice(0, 1) }}</el-avatar>
+        </template>
         <template #status="{ row }">
           <el-tag :type="row.status === 1 ? 'success' : 'info'">{{
             row.status === 1 ? '启用' : '禁用'
@@ -168,6 +177,14 @@ onMounted(loadRoles)
         </el-form-item>
         <el-form-item label="手机号">
           <el-input v-model="form.phone" />
+        </el-form-item>
+        <el-form-item label="头像">
+          <FileUpload
+            v-model="form.avatar"
+            accept=".jpg,.jpeg,.png,.gif,.webp,.svg"
+            :max-size-mb="5"
+            tip="支持 jpg/png/gif/webp/svg，不超过 5MB"
+          />
         </el-form-item>
         <el-form-item label="角色">
           <el-select v-model="form.role_ids" multiple clearable placeholder="选择角色（可多选）" style="width: 100%">

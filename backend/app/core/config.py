@@ -39,6 +39,11 @@ class Settings(BaseSettings):
     INIT_ADMIN_USERNAME: str = "admin"
     INIT_ADMIN_PASSWORD: str = "admin123"
 
+    # 文件上传
+    UPLOAD_DIR: str = "uploads"
+    UPLOAD_MAX_SIZE: int = 5 * 1024 * 1024  # 5MB
+    UPLOAD_ALLOWED_EXTENSIONS: str = "jpg,jpeg,png,gif,webp,svg,pdf,doc,docx,xls,xlsx"
+
     # 监控
     SENTRY_DSN: str = ""
 
@@ -49,6 +54,11 @@ class Settings(BaseSettings):
     @property
     def is_prod(self) -> bool:
         return self.APP_ENV == "prod"
+
+    @property
+    def upload_allowed_ext_set(self) -> set[str]:
+        """上传允许的扩展名集合（小写、不含点）。"""
+        return {e.strip().lower() for e in self.UPLOAD_ALLOWED_EXTENSIONS.split(",") if e.strip()}
 
 
 @lru_cache

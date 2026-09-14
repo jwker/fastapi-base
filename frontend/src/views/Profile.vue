@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import { useUserStore } from '@/stores/user'
 import { usePermissionStore } from '@/stores/permission'
+import FileUpload from '@/components/FileUpload.vue'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -136,7 +137,12 @@ async function savePassword() {
               <el-input v-model="profileForm.phone" maxlength="20" placeholder="手机号" />
             </el-form-item>
             <el-form-item label="头像">
-              <el-input v-model="profileForm.avatar" maxlength="255" placeholder="头像图片地址（URL）" />
+              <FileUpload
+                v-model="profileForm.avatar"
+                accept=".jpg,.jpeg,.png,.gif,.webp,.svg"
+                :max-size-mb="5"
+                tip="支持 jpg/png/gif/webp/svg，不超过 5MB"
+              />
             </el-form-item>
             <el-form-item>
               <el-button type="primary" :loading="profileSaving" @click="saveProfile">

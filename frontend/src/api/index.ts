@@ -2,6 +2,7 @@ import request from '@/utils/request'
 import type {
   ApiResponse,
   AuditLogRecord,
+  FileRecord,
   LoginResult,
   MenuItem,
   PageResult,
@@ -101,4 +102,13 @@ export const auditLogApi = {
     request.get<Blob>('/audit-logs/export', { params, responseType: 'blob' }),
   remove: (params: AuditLogQuery & { end_time: string }) =>
     request.delete<ApiResponse<{ deleted: number }>>('/audit-logs', { params }),
+}
+
+export const fileApi = {
+  /** 上传文件（FormData，axios 自动带 multipart boundary），返回可访问 URL */
+  upload: (file: File) => {
+    const form = new FormData()
+    form.append('file', file)
+    return request.post<ApiResponse<FileRecord>>('/files/upload', form)
+  },
 }

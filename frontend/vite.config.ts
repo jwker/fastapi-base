@@ -19,6 +19,11 @@ export default defineConfig({
         target: process.env.VITE_PROXY_TARGET || 'http://localhost:8000',
         changeOrigin: true,
       },
+      // 上传文件静态访问（后端 StaticFiles 挂载 /uploads）
+      '/uploads': {
+        target: process.env.VITE_PROXY_TARGET || 'http://localhost:8000',
+        changeOrigin: true,
+      },
     },
   },
   build: {

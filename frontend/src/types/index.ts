@@ -53,6 +53,7 @@ export interface UserRecord {
   email: string
   phone: string
   status: number
+  avatar: string
   is_superuser: boolean
   last_login_at: string | null
   created_at: string
@@ -93,4 +94,10 @@ export interface AuditLogRecord {
   ip: string
   user_agent: string
   created_at: string
+}
+
+export interface FileRecord {
+  url: string
+  name: string
+  size: number
 }

@@ -11,6 +11,7 @@ class UserBase(BaseModel):
     email: EmailStr | str = ""
     phone: str = Field(default="", max_length=20)
     status: int = Field(default=1, ge=0, le=1)
+    avatar: str = Field(default="", max_length=255)
 
 
 class UserCreate(UserBase):
@@ -25,6 +26,7 @@ class UserUpdate(BaseModel):
     status: int | None = Field(default=None, ge=0, le=1)
     password: str | None = Field(default=None, min_length=6, max_length=128)
     role_ids: list[int] | None = None
+    avatar: str | None = Field(default=None, max_length=255)
 
 
 class UserOut(UserBase):

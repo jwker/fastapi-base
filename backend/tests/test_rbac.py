@@ -390,3 +390,27 @@ async def test_three_level_menu_tree(client, admin_headers):
     await client.delete(f"/api/v1/menus/{order_list['id']}", headers=admin_headers)
     await client.delete(f"/api/v1/menus/{orders['id']}", headers=admin_headers)
     await client.delete(f"/api/v1/menus/{biz['id']}", headers=admin_headers)
+
+
+@pytest.mark.asyncio
+async def test_update_user_avatar(client, admin_headers):
+    """管理员更新用户头像：UserUpdate 支持 avatar，返回与列表一致。"""
+    created = await client.post(
+        "/api/v1/users", headers=admin_headers, json={"username": "av_usr", "password": "av12345"}
+    )
+    user_id = created.json()["data"]["id"]
+    # 创建时头像默认空
+    assert created.json()["data"]["avatar"] == ""
+
+    resp = await client.put(
+        f"/api/v1/users/{user_id}",
+        headers=admin_headers,
+        json={"avatar": "/uploads/202609/abc.png"},
+    )
+    assert resp.status_code in (200, 201)
+    assert resp.json()["data"]["avatar"] == "/uploads/202609/abc.png"
+
+    # 列表返回也带 avatar
+    listed = await client.get("/api/v1/users", headers=admin_headers)
+    item = next(u for u in listed.json()["data"]["items"] if u["id"] == user_id)
+    assert item["avatar"] == "/uploads/202609/abc.png"

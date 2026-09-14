@@ -45,6 +45,8 @@ services:
       INIT_ADMIN_USERNAME: ${INIT_ADMIN_USERNAME:-admin}
       INIT_ADMIN_PASSWORD: ${INIT_ADMIN_PASSWORD:-admin123}
       SENTRY_DSN: ${SENTRY_DSN:-}
+    volumes:
+      - uploads_data:/app/uploads
     ports:
       - "8000:8000"
     depends_on:
@@ -56,6 +58,8 @@ services:
   frontend:
     build: ./frontend
     container_name: fb-frontend
+    volumes:
+      - uploads_data:/usr/share/nginx/uploads
     ports:
       - "${FRONTEND_PORT:-5173}:80"
     depends_on:
@@ -64,3 +68,4 @@ services:
 volumes:
   pg_data:
   redis_data:
+  uploads_data:

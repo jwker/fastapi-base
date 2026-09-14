@@ -2,6 +2,7 @@
 .env
 *.local
 backend/data/
+backend/uploads/
 backend/logs/
 backend/.venv/
 backend/.pytest_cache/
