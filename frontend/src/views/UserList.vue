@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import ProTable, { type ActionConfig, type ColumnConfig } from '@/components/ProTable.vue'
+import ProForm, { type ProFormField } from '@/components/ProForm.vue'
 import FileUpload from '@/components/FileUpload.vue'
 import { roleApi, userApi } from '@/api'
 import type { RoleRecord } from '@/types'
@@ -62,9 +63,10 @@ async function loadRoles() {
   roleOptions.value = res.data.items
 }
 
-// 弹窗表单
+// 弹窗表单（ProForm 配置驱动：防线校验/模式感知/回填由组件处理）
 const dialogVisible = ref(false)
 const editingId = ref<number | null>(null)
+const saving = ref(false)
 const form = reactive({
   username: '',
   nickname: '',
@@ -75,6 +77,46 @@ const form = reactive({
   role_ids: [] as number[],
   avatar: '',
 })
+
+const userFields = computed<ProFormField[]>(() => [
+  {
+    prop: 'username',
+    label: '用户名',
+    required: true,
+    placeholder: '登录用户名',
+    disabled: () => !!editingId.value,
+  },
+  { prop: 'nickname', label: '昵称' },
+  { prop: 'email', label: '邮箱' },
+  { prop: 'phone', label: '手机号' },
+  { prop: 'avatar', label: '头像', type: 'slot' },
+  {
+    prop: 'role_ids',
+    label: '角色',
+    type: 'select',
+    multiple: true,
+    placeholder: '选择角色（可多选）',
+    options: roleOptions.value.map((r) => ({ label: `${r.name}（${r.code}）`, value: r.id })),
+  },
+  {
+    prop: 'password',
+    label: '密码',
+    type: 'input',
+    inputType: 'password',
+    // 两种模式都显示，但仅新增必填
+    required: (m) => m === 'create',
+    placeholder: (m) => (m === 'create' ? '至少 6 位' : '留空则不修改'),
+  },
+  {
+    prop: 'status',
+    label: '状态',
+    type: 'switch',
+    activeValue: 1,
+    inactiveValue: 0,
+    activeText: '启用',
+    inactiveText: '禁用',
+  },
+])
 
 function openDialog(row?: any) {
   if (row) {
@@ -106,28 +148,29 @@ function openDialog(row?: any) {
 }
 
 async function submit() {
-  if (!form.username || (!editingId.value && !form.password)) {
-    ElMessage.warning('用户名和密码必填')
-    return
+  saving.value = true
+  try {
+    const payload: Record<string, unknown> = {
+      nickname: form.nickname,
+      email: form.email,
+      phone: form.phone,
+      status: form.status,
+      role_ids: form.role_ids,
+      avatar: form.avatar,
+    }
+    if (form.password) payload.password = form.password
+    if (editingId.value) {
+      await userApi.update(editingId.value, payload)
+      ElMessage.success('更新成功')
+    } else {
+      await userApi.create({ ...payload, username: form.username, password: form.password })
+      ElMessage.success('创建成功')
+    }
+    dialogVisible.value = false
+    tableRef.value?.refresh()
+  } finally {
+    saving.value = false
   }
-  const payload: Record<string, unknown> = {
-    nickname: form.nickname,
-    email: form.email,
-    phone: form.phone,
-    status: form.status,
-    role_ids: form.role_ids,
-    avatar: form.avatar,
-  }
-  if (form.password) payload.password = form.password
-  if (editingId.value) {
-    await userApi.update(editingId.value, payload)
-    ElMessage.success('更新成功')
-  } else {
-    await userApi.create({ ...payload, username: form.username, password: form.password })
-    ElMessage.success('创建成功')
-  }
-  dialogVisible.value = false
-  tableRef.value?.refresh()
 }
 
 onMounted(loadRoles)
@@ -165,60 +208,26 @@ onMounted(loadRoles)
       </ProTable>
     </el-card>
 
-    <el-dialog v-model="dialogVisible" :title="editingId ? '编辑用户' : '新增用户'" width="480px">      <el-form label-width="70px">
-        <el-form-item label="用户名" required>
-          <el-input v-model="form.username" :disabled="!!editingId" placeholder="登录用户名" />
-        </el-form-item>
-        <el-form-item label="昵称">
-          <el-input v-model="form.nickname" />
-        </el-form-item>
-        <el-form-item label="邮箱">
-          <el-input v-model="form.email" />
-        </el-form-item>
-        <el-form-item label="手机号">
-          <el-input v-model="form.phone" />
-        </el-form-item>
-        <el-form-item label="头像">
+    <!-- 用户新增/编辑弹窗（ProForm：字段配置驱动 + 防线校验 + 插槽头像 + footer） -->
+    <el-dialog v-model="dialogVisible" :title="editingId ? '编辑用户' : '新增用户'" width="480px">
+      <ProForm
+        v-model="form"
+        :fields="userFields"
+        :mode="editingId ? 'edit' : 'create'"
+        :submit-loading="saving"
+        @submit="submit"
+        @cancel="dialogVisible = false"
+      >
+        <template #avatar="{ model }">
           <FileUpload
-            v-model="form.avatar"
+            v-model="model.avatar"
             accept=".jpg,.jpeg,.png,.gif,.webp,.svg"
             :max-size-mb="5"
             source="avatar"
             tip="支持 jpg/png/gif/webp/svg，不超过 5MB"
           />
-        </el-form-item>
-        <el-form-item label="角色">
-          <el-select v-model="form.role_ids" multiple clearable placeholder="选择角色（可多选）" style="width: 100%">
-            <el-option
-              v-for="role in roleOptions"
-              :key="role.id"
-              :label="`${role.name}（${role.code}）`"
-              :value="role.id"
-            />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="密码" :required="!editingId">
-          <el-input
-            v-model="form.password"
-            type="password"
-            show-password
-            :placeholder="editingId ? '留空则不修改' : '至少 6 位'"
-          />
-        </el-form-item>
-        <el-form-item label="状态">
-          <el-switch
-            v-model="form.status"
-            :active-value="1"
-            :inactive-value="0"
-            active-text="启用"
-            inactive-text="禁用"
-          />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="submit">确定</el-button>
-      </template>
+        </template>
+      </ProForm>
     </el-dialog>
   </div>
 </template>

@@ -2,6 +2,7 @@
 import { nextTick, onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import ProTable, { type ActionConfig, type ColumnConfig } from '@/components/ProTable.vue'
+import ProForm, { type ProFormField } from '@/components/ProForm.vue'
 import { menuApi, permissionApi, roleApi } from '@/api'
 import type { MenuItem, PermissionRecord, RoleRecord } from '@/types'
 
@@ -48,10 +49,24 @@ const actions: ActionConfig[] = [
   },
 ]
 
-// 基础表单
+// 基础表单（ProForm 配置驱动：校验防线/模式感知/回填由组件处理）
 const dialogVisible = ref(false)
 const editingId = ref<number | null>(null)
+const saving = ref(false)
 const form = reactive({ name: '', code: '', description: '' })
+
+const roleFields: ProFormField[] = [
+  { prop: 'name', label: '角色名称', required: true },
+  {
+    prop: 'code',
+    label: '编码',
+    required: true,
+    placeholder: '如 auditor',
+    // 编辑模式编码不可改（与业务标识一致性）
+    disabled: () => !!editingId.value,
+  },
+  { prop: 'description', label: '描述', type: 'textarea', rows: 2 },
+]
 
 function openDialog(row?: any) {
   if (row) {
@@ -65,19 +80,20 @@ function openDialog(row?: any) {
 }
 
 async function submit() {
-  if (!form.name || !form.code) {
-    ElMessage.warning('名称和编码必填')
-    return
+  saving.value = true
+  try {
+    if (editingId.value) {
+      await roleApi.update(editingId.value, { ...form })
+      ElMessage.success('更新成功')
+    } else {
+      await roleApi.create({ ...form })
+      ElMessage.success('创建成功')
+    }
+    dialogVisible.value = false
+    tableRef.value?.refresh()
+  } finally {
+    saving.value = false
   }
-  if (editingId.value) {
-    await roleApi.update(editingId.value, { ...form })
-    ElMessage.success('更新成功')
-  } else {
-    await roleApi.create({ ...form })
-    ElMessage.success('创建成功')
-  }
-  dialogVisible.value = false
-  tableRef.value?.refresh()
 }
 
 // 权限分配
@@ -173,23 +189,16 @@ onMounted(() => {
       </ProTable>
     </el-card>
 
-    <!-- 角色基础表单 -->
+    <!-- 角色基础表单（ProForm：字段配置驱动 + 防线校验 + 取消/确定 footer） -->
     <el-dialog v-model="dialogVisible" :title="editingId ? '编辑角色' : '新增角色'" width="460px">
-      <el-form label-width="70px">
-        <el-form-item label="角色名称" required>
-          <el-input v-model="form.name" />
-        </el-form-item>
-        <el-form-item label="编码" required>
-          <el-input v-model="form.code" :disabled="!!editingId" placeholder="如 auditor" />
-        </el-form-item>
-        <el-form-item label="描述">
-          <el-input v-model="form.description" type="textarea" :rows="2" />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="submit">确定</el-button>
-      </template>
+      <ProForm
+        v-model="form"
+        :fields="roleFields"
+        :mode="editingId ? 'edit' : 'create'"
+        :submit-loading="saving"
+        @submit="submit"
+        @cancel="dialogVisible = false"
+      />
     </el-dialog>
 
     <!-- 权限分配 -->

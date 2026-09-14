@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import ProForm, { type ProFormField } from '@/components/ProForm.vue'
 import { menuApi } from '@/api'
 import type { MenuItem } from '@/types'
 
@@ -9,6 +10,7 @@ const rawTree = ref<MenuItem[]>([])
 const keyword = ref('')
 const dialogVisible = ref(false)
 const editingId = ref<number | null>(null)
+const saving = ref(false)
 const parentOptions = ref<{ id: number; label: string }[]>([])
 
 const form = reactive({
@@ -21,6 +23,29 @@ const form = reactive({
   is_visible: true,
   permission_code: '',
 })
+
+// 菜单弹窗字段（ProForm 配置驱动）
+const menuFields = computed<ProFormField[]>(() => [
+  {
+    prop: 'parent_id',
+    label: '父级菜单',
+    type: 'select',
+    placeholder: '不选则为顶级菜单',
+    // 编辑时禁选自己，避免菜单成为自己的父级
+    options: parentOptions.value.map((o) => ({
+      label: o.label,
+      value: o.id,
+      disabled: o.id === editingId.value,
+    })),
+  },
+  { prop: 'name', label: '菜单名称', required: true },
+  { prop: 'path', label: '路由路径', required: true, placeholder: '/users' },
+  { prop: 'component', label: '组件', placeholder: 'UserList / Layout' },
+  { prop: 'icon', label: '图标', placeholder: 'Element Plus 图标名，如 User' },
+  { prop: 'sort_order', label: '排序', type: 'number', min: 0 },
+  { prop: 'is_visible', label: '可见', type: 'switch' },
+  { prop: 'permission_code', label: '权限码', placeholder: '如 user:read，留空则登录可见' },
+])
 
 const tree = computed(() => {
   const kw = keyword.value.trim()
@@ -87,24 +112,25 @@ function openEdit(row: MenuItem) {
 }
 
 async function submit() {
-  if (!form.name || !form.path) {
-    ElMessage.warning('名称和路径必填')
-    return
+  saving.value = true
+  try {
+    const payload = {
+      ...form,
+      parent_id: form.parent_id,
+      permission_code: form.permission_code || null,
+    }
+    if (editingId.value) {
+      await menuApi.update(editingId.value, payload)
+      ElMessage.success('更新成功')
+    } else {
+      await menuApi.create(payload)
+      ElMessage.success('创建成功')
+    }
+    dialogVisible.value = false
+    loadTree()
+  } finally {
+    saving.value = false
   }
-  const payload = {
-    ...form,
-    parent_id: form.parent_id,
-    permission_code: form.permission_code || null,
-  }
-  if (editingId.value) {
-    await menuApi.update(editingId.value, payload)
-    ElMessage.success('更新成功')
-  } else {
-    await menuApi.create(payload)
-    ElMessage.success('创建成功')
-  }
-  dialogVisible.value = false
-  loadTree()
 }
 
 async function remove(row: MenuItem) {
@@ -183,50 +209,17 @@ onMounted(loadTree)
       </el-table>
     </el-card>
 
+    <!-- 菜单新增/编辑弹窗（ProForm：字段配置驱动 + 防线校验 + footer） -->
     <el-dialog v-model="dialogVisible" :title="editingId ? '编辑菜单' : '新增菜单'" width="520px">
-      <el-form label-width="90px">
-        <el-form-item label="父级菜单">
-          <el-select
-            v-model="form.parent_id"
-            clearable
-            placeholder="不选则为顶级菜单"
-            style="width: 100%"
-          >
-            <el-option
-              v-for="opt in parentOptions"
-              :key="opt.id"
-              :label="opt.label"
-              :value="opt.id"
-              :disabled="opt.id === editingId"
-            />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="菜单名称" required>
-          <el-input v-model="form.name" />
-        </el-form-item>
-        <el-form-item label="路由路径" required>
-          <el-input v-model="form.path" placeholder="/users" />
-        </el-form-item>
-        <el-form-item label="组件">
-          <el-input v-model="form.component" placeholder="UserList / Layout" />
-        </el-form-item>
-        <el-form-item label="图标">
-          <el-input v-model="form.icon" placeholder="Element Plus 图标名，如 User" />
-        </el-form-item>
-        <el-form-item label="排序">
-          <el-input-number v-model="form.sort_order" :min="0" />
-        </el-form-item>
-        <el-form-item label="可见">
-          <el-switch v-model="form.is_visible" />
-        </el-form-item>
-        <el-form-item label="权限码">
-          <el-input v-model="form.permission_code" placeholder="如 user:read，留空则登录可见" />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="submit">确定</el-button>
-      </template>
+      <ProForm
+        v-model="form"
+        :fields="menuFields"
+        :mode="editingId ? 'edit' : 'create'"
+        :submit-loading="saving"
+        label-width="90px"
+        @submit="submit"
+        @cancel="dialogVisible = false"
+      />
     </el-dialog>
   </div>
 </template>
