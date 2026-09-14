@@ -15,14 +15,25 @@ import { createPinia, setActivePinia } from 'pinia'
 import ElementPlus, { ElMessage, ElMessageBox } from 'element-plus'
 import { Search } from '@element-plus/icons-vue'
 import AuditLogList from '@/views/AuditLogList.vue'
-import { auditLogApi } from '@/api'
+import { auditLogApi, dictApi } from '@/api'
 import { useUserStore } from '@/stores/user'
 
 vi.mock('@/api', () => ({
   auditLogApi: { list: vi.fn(), export: vi.fn(), remove: vi.fn() },
+  dictApi: { byType: vi.fn() },
 }))
 
 function mountList() {
+  ;(dictApi.byType as ReturnType<typeof vi.fn>).mockResolvedValue({
+    code: 0,
+    data: [
+      { label: '新增', value: 'create' },
+      { label: '修改', value: 'update' },
+      { label: '删除', value: 'delete' },
+      { label: '登录', value: 'login' },
+      { label: '登出', value: 'logout' },
+    ],
+  })
   const pinia = createPinia()
   setActivePinia(pinia)
   const store = useUserStore()

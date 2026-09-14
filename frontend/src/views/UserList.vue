@@ -5,6 +5,7 @@ import ProTable, { type ActionConfig, type ColumnConfig } from '@/components/Pro
 import ProForm, { type ProFormField } from '@/components/ProForm.vue'
 import FileUpload from '@/components/FileUpload.vue'
 import { roleApi, userApi } from '@/api'
+import { useDict } from '@/composables/useDict'
 import type { RoleRecord } from '@/types'
 
 const tableRef = ref<InstanceType<typeof ProTable>>()
@@ -117,6 +118,8 @@ const userFields = computed<ProFormField[]>(() => [
     inactiveText: '禁用',
   },
 ])
+// 状态文案从字典取（sys_status）
+const { getLabel: statusLabel } = useDict('sys_status')
 
 function openDialog(row?: any) {
   if (row) {
@@ -194,7 +197,7 @@ onMounted(loadRoles)
         </template>
         <template #status="{ row }">
           <el-tag :type="row.status === 1 ? 'success' : 'info'">{{
-            row.status === 1 ? '启用' : '禁用'
+            statusLabel(row.status)
           }}</el-tag>
         </template>
         <template #roles="{ row }">

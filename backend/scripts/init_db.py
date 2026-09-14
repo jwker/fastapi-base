@@ -10,6 +10,7 @@ from sqlalchemy import select
 from app.core.config import settings
 from app.core.database import AsyncSessionLocal
 from app.core.security import hash_password
+from app.models.dict import DictItem, DictType
 from app.models.menu import Menu
 from app.models.permission import Permission
 from app.models.role import Role
@@ -41,6 +42,9 @@ PERMISSIONS: list[dict] = [
     # 文件管理
     {"name": "文件查询", "code": "file:read", "resource": "file", "action": "read"},
     {"name": "文件删除", "code": "file:delete", "resource": "file", "action": "delete"},
+    # 数据字典
+    {"name": "字典查询", "code": "dict:read", "resource": "dict", "action": "read"},
+    {"name": "字典维护", "code": "dict:write", "resource": "dict", "action": "write"},
 ]
 
 # 角色：code -> (名称, 描述, 权限码集合)
@@ -68,6 +72,8 @@ ROLES: dict[str, tuple[str, str, list[str]]] = {
             "audit:delete",
             "file:read",
             "file:delete",
+            "dict:read",
+            "dict:write",
         ],
     ),
     "user": (
@@ -134,6 +140,14 @@ MENUS: list[dict] = [
                 "permission_code": "audit:read",
                 "children": [],
             },
+            {
+                "name": "字典管理",
+                "path": "/dicts",
+                "component": "DictList",
+                "icon": "Collection",
+                "permission_code": "dict:read",
+                "children": [],
+            },
         ],
     },
     {
@@ -145,6 +159,71 @@ MENUS: list[dict] = [
         "children": [],
     },
 ]
+
+# 字典种子：type -> (名称, 备注, [(label, value, sort, is_default), ...])
+# 值与业务代码实际存储值对齐：
+# sys_status -> User/Role.status(int)；file_source -> File.source；
+# audit_action -> OperationLog.action（middleware/audit.py infer_action）。
+DICTS: dict[str, tuple[str, str, list[tuple[str, str, int, bool]]]] = {
+    "sys_status": (
+        "系统状态",
+        "用户/角色启用禁用状态（1=启用，0=禁用）",
+        [
+            ("启用", "1", 1, True),
+            ("禁用", "0", 2, False),
+        ],
+    ),
+    "file_source": (
+        "文件来源",
+        "文件上传来源打标（File.source）",
+        [
+            ("头像", "avatar", 1, False),
+            ("素材", "manual", 2, True),
+        ],
+    ),
+    "audit_action": (
+        "审计动作",
+        "操作日志动作类型（OperationLog.action）",
+        [
+            ("登录", "login", 1, False),
+            ("登出", "logout", 2, False),
+            ("新增", "create", 3, False),
+            ("修改", "update", 4, False),
+            ("删除", "delete", 5, False),
+            ("其他", "other", 6, True),
+        ],
+    ),
+}
+
+
+async def init_dicts(db) -> None:
+    """字典类型 + 项，按 type 增量补缺（幂等，可重复执行）。"""
+    for type_code, (name, remark, items) in DICTS.items():
+        t = (
+            await db.execute(select(DictType).where(DictType.type == type_code))
+        ).scalar_one_or_none()
+        if t is None:
+            t = DictType(name=name, type=type_code, remark=remark)
+            db.add(t)
+            await db.flush()
+        # 增量补项：已存在的 value 跳过，缺的补插
+        existing_values = {
+            i.value
+            for i in (await db.execute(select(DictItem).where(DictItem.type_id == t.id))).scalars()
+        }
+        for label, value, sort, is_default in items:
+            if value in existing_values:
+                continue
+            db.add(
+                DictItem(
+                    type_id=t.id,
+                    label=label,
+                    value=value,
+                    sort=sort,
+                    is_default=is_default,
+                    status=1,
+                )
+            )
 
 
 async def init_permissions(db) -> dict[str, int]:
@@ -249,10 +328,12 @@ async def main() -> None:
             roles = await init_roles(db, perm_mapping)
             await init_superuser(db, roles["super_admin"])
             await init_menus(db, roles)
+            await init_dicts(db)
         await db.commit()
         print(
             f"初始化完成：权限 {len(PERMISSIONS)} 个，角色 {len(ROLES)} 个，"
-            f"超管 {settings.INIT_ADMIN_USERNAME}/{settings.INIT_ADMIN_PASSWORD}"
+            f"字典 {len(DICTS)} 个，超管 "
+            f"{settings.INIT_ADMIN_USERNAME}/{settings.INIT_ADMIN_PASSWORD}"
         )
 
 

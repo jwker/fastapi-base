@@ -109,3 +109,31 @@ export interface FileRecord {
   created_by_name: string
   created_at: string
 }
+
+// ---------- 数据字典 ----------
+export interface DictTypeRecord {
+  id: number
+  name: string
+  type: string
+  remark: string
+  created_at: string
+  item_count: number
+}
+
+export interface DictItemRecord {
+  id: number
+  type_id: number
+  label: string
+  value: string
+  sort: number
+  is_default: boolean
+  status: number
+  remark: string
+  created_at: string
+}
+
+/** 业务取用字典项（GET /dicts/type/{type}） */
+export interface DictOption {
+  label: string
+  value: string
+}

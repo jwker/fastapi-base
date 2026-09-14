@@ -2,6 +2,9 @@ import request from '@/utils/request'
 import type {
   ApiResponse,
   AuditLogRecord,
+  DictItemRecord,
+  DictOption,
+  DictTypeRecord,
   FileRecord,
   LoginResult,
   MenuItem,
@@ -118,4 +121,30 @@ export const fileApi = {
     request.get<ApiResponse<PageResult<FileRecord>>>('/files', { params }),
   /** 删除文件（记录 + 磁盘文件） */
   remove: (id: number) => request.delete<ApiResponse<null>>(`/files/${id}`),
+}
+
+// ---------- 数据字典 ----------
+export const dictApi = {
+  /** 字典类型分页 */
+  types: (params: { page: number; page_size: number; keyword?: string }) =>
+    request.get<ApiResponse<PageResult<DictTypeRecord>>>('/dicts', { params }),
+  createType: (data: { name: string; type: string; remark?: string }) =>
+    request.post<ApiResponse<DictTypeRecord>>('/dicts', data),
+  updateType: (id: number, data: { name?: string; type?: string; remark?: string }) =>
+    request.put<ApiResponse<DictTypeRecord>>(`/dicts/${id}`, data),
+  removeType: (id: number) => request.delete<ApiResponse<null>>(`/dicts/${id}`),
+  /** 类型下字典项 */
+  items: (typeId: number) =>
+    request.get<ApiResponse<DictItemRecord[]>>(`/dicts/${typeId}/items`),
+  createItem: (
+    typeId: number,
+    data: { label: string; value: string; sort?: number; is_default?: boolean; status?: number; remark?: string },
+  ) => request.post<ApiResponse<DictItemRecord>>(`/dicts/${typeId}/items`, data),
+  updateItem: (
+    id: number,
+    data: { label?: string; value?: string; sort?: number; is_default?: boolean; status?: number; remark?: string },
+  ) => request.put<ApiResponse<DictItemRecord>>(`/dicts/items/${id}`, data),
+  removeItem: (id: number) => request.delete<ApiResponse<null>>(`/dicts/items/${id}`),
+  /** 业务取用：按类型编码取启用项 */
+  byType: (code: string) => request.get<ApiResponse<DictOption[]>>(`/dicts/type/${code}`),
 }

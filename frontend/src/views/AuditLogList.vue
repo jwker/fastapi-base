@@ -6,6 +6,7 @@ import { computed, reactive, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import ProTable, { type ColumnConfig } from '@/components/ProTable.vue'
 import { auditLogApi } from '@/api'
+import { useDict } from '@/composables/useDict'
 import type { AuditLogRecord } from '@/types'
 import { useUserStore } from '@/stores/user'
 
@@ -140,14 +141,16 @@ async function doDelete(params: Record<string, unknown>) {
 }
 
 // ---------- 字典 ----------
-const actionMeta: Record<string, { label: string; type: 'success' | 'warning' | 'danger' | 'primary' | 'info' }> = {
-  create: { label: '新增', type: 'success' },
-  update: { label: '修改', type: 'warning' },
-  delete: { label: '删除', type: 'danger' },
-  login: { label: '登录', type: 'primary' },
-  logout: { label: '登出', type: 'info' },
-  query: { label: '查询', type: 'info' },
+// 操作类型：文案从字典取（audit_action），tag 颜色保留页面配置
+const actionType: Record<string, 'success' | 'warning' | 'danger' | 'primary' | 'info'> = {
+  create: 'success',
+  update: 'warning',
+  delete: 'danger',
+  login: 'primary',
+  logout: 'info',
+  other: 'info',
 }
+const { getLabel: actionLabel, options: actionOptions } = useDict('audit_action')
 const methodMeta: Record<string, string> = {
   POST: 'primary',
   PUT: 'warning',
@@ -228,10 +231,10 @@ function fmtBody(body: string) {
             style="width: 120px"
           >
             <el-option
-              v-for="(meta, key) in actionMeta"
-              :key="key"
-              :label="meta.label"
-              :value="key"
+              v-for="opt in actionOptions"
+              :key="opt.value"
+              :label="opt.label"
+              :value="opt.value"
             />
           </el-select>
         </el-form-item>
@@ -278,8 +281,8 @@ function fmtBody(body: string) {
           <span>{{ row.username || '（匿名）' }}</span>
         </template>
         <template #action="{ row }">
-          <el-tag :type="actionMeta[row.action]?.type ?? 'info'" size="small">
-            {{ actionMeta[row.action]?.label ?? row.action }}
+          <el-tag :type="actionType[row.action] ?? 'info'" size="small">
+            {{ actionLabel(row.action) }}
           </el-tag>
         </template>
         <template #method="{ row }">
@@ -313,7 +316,7 @@ function fmtBody(body: string) {
           </el-descriptions-item>
           <el-descriptions-item label="模块">{{ detail.module }}</el-descriptions-item>
           <el-descriptions-item label="动作">
-            {{ actionMeta[detail.action]?.label ?? detail.action }}
+            {{ actionLabel(detail.action) }}
           </el-descriptions-item>
           <el-descriptions-item label="方法">{{ detail.method }}</el-descriptions-item>
           <el-descriptions-item label="请求路径">{{ detail.path }}</el-descriptions-item>

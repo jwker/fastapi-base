@@ -186,8 +186,8 @@ async def test_menu_tree_no_duplicate_children(client, admin_headers):
             total += count(n.get("children", []))
         return total
 
-    # 种子数据：3 根（仪表盘/系统管理/文件管理）+ 5 子 = 8；重复则 > 8
-    assert count(tree) == 8
+    # 种子：3 根 + 6 子（用户/角色/权限/菜单/操作日志/字典）= 9；重复则 > 9
+    assert count(tree) == 9
 
 
 @pytest.mark.asyncio

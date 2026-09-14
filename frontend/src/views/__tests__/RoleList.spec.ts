@@ -12,7 +12,7 @@ import { nextTick } from 'vue'
 import { createPinia, setActivePinia } from 'pinia'
 import ElementPlus from 'element-plus'
 import RoleList from '@/views/RoleList.vue'
-import { roleApi } from '@/api'
+import { dictApi, roleApi } from '@/api'
 import { useUserStore } from '@/stores/user'
 
 // el-table 依赖 ResizeObserver（jsdom 未实现），缺失时表格不渲染行
@@ -26,6 +26,7 @@ if (!globalThis.ResizeObserver) {
 
 vi.mock('@/api', () => ({
   roleApi: { list: vi.fn(), create: vi.fn(), update: vi.fn(), remove: vi.fn(), assignPermissions: vi.fn(), assignMenus: vi.fn() },
+  dictApi: { byType: vi.fn() },
 }))
 
 const wrappers: VueWrapper[] = []
@@ -35,6 +36,13 @@ afterEach(() => {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  ;(dictApi.byType as ReturnType<typeof vi.fn>).mockResolvedValue({
+    code: 0,
+    data: [
+      { label: '启用', value: '1' },
+      { label: '禁用', value: '0' },
+    ],
+  })
 })
 
 function mountList() {

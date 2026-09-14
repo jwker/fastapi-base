@@ -4,9 +4,12 @@ import { ElMessage } from 'element-plus'
 import ProTable, { type ActionConfig, type ColumnConfig } from '@/components/ProTable.vue'
 import ProForm, { type ProFormField } from '@/components/ProForm.vue'
 import { menuApi, permissionApi, roleApi } from '@/api'
+import { useDict } from '@/composables/useDict'
 import type { MenuItem, PermissionRecord, RoleRecord } from '@/types'
 
 const tableRef = ref<InstanceType<typeof ProTable>>()
+// 状态文案从字典取（sys_status）
+const { getLabel: statusLabel } = useDict('sys_status')
 
 const columns: ColumnConfig[] = [
   { prop: 'id', label: 'ID', width: 70 },
@@ -183,7 +186,7 @@ onMounted(() => {
       >
         <template #status="{ row }">
           <el-tag :type="row.status === 1 ? 'success' : 'info'">{{
-            row.status === 1 ? '启用' : '禁用'
+            statusLabel(row.status)
           }}</el-tag>
         </template>
       </ProTable>

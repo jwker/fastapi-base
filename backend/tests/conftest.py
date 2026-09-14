@@ -71,13 +71,14 @@ async def setup_db():
         await conn.run_sync(Base.metadata.create_all)
 
     from app.core.database import AsyncSessionLocal
-    from scripts.init_db import init_menus, init_permissions, init_roles
+    from scripts.init_db import init_dicts, init_menus, init_permissions, init_roles
 
     async with AsyncSessionLocal() as db:
         with db.no_autoflush:
             perm_mapping = await init_permissions(db)
             roles = await init_roles(db, perm_mapping)
             await init_menus(db, roles)
+            await init_dicts(db)
         await db.commit()
 
     yield

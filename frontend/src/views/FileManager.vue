@@ -8,6 +8,7 @@ import { computed, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import ProTable, { type ColumnConfig } from '@/components/ProTable.vue'
 import { fileApi } from '@/api'
+import { useDict } from '@/composables/useDict'
 import type { FileRecord } from '@/types'
 import { useUserStore } from '@/stores/user'
 
@@ -24,10 +25,12 @@ const remark = ref('')
 const pendingFiles = ref<File[]>([])
 const uploadDialogVisible = ref(false)
 
-const sourceMeta: Record<string, { label: string; type: 'success' | 'info' | 'warning' | 'primary' }> = {
-  avatar: { label: '头像', type: 'info' },
-  manual: { label: '素材', type: 'primary' },
+// 来源文案从字典取（file_source），tag 颜色保留页面配置（字典只管文案）
+const sourceType: Record<string, 'success' | 'info' | 'warning' | 'primary'> = {
+  avatar: 'info',
+  manual: 'primary',
 }
+const { getLabel: sourceLabel } = useDict('file_source')
 
 function formatSize(bytes: number) {
   if (!bytes) return '-'
@@ -37,7 +40,7 @@ function formatSize(bytes: number) {
 }
 
 function sourceOf(file: FileRecord) {
-  return sourceMeta[file.source] ?? { label: file.source, type: 'info' as const }
+  return { label: sourceLabel(file.source), type: sourceType[file.source] ?? 'info' }
 }
 
 function doUpload() {

@@ -14,7 +14,7 @@ import { nextTick } from 'vue'
 import { createPinia, setActivePinia } from 'pinia'
 import ElementPlus, { ElMessageBox } from 'element-plus'
 import FileManager from '@/views/FileManager.vue'
-import { fileApi } from '@/api'
+import { dictApi, fileApi } from '@/api'
 import { useUserStore } from '@/stores/user'
 
 // el-table 依赖 ResizeObserver（jsdom 未实现），缺失时表格不渲染行
@@ -28,6 +28,7 @@ if (!globalThis.ResizeObserver) {
 
 vi.mock('@/api', () => ({
   fileApi: { upload: vi.fn(), list: vi.fn(), remove: vi.fn() },
+  dictApi: { byType: vi.fn() },
 }))
 
 const wrappers: VueWrapper[] = []
@@ -36,6 +37,13 @@ afterEach(() => {
 })
 
 function mountList(isSuperuser = true, permissions: string[] = []) {
+  ;(dictApi.byType as ReturnType<typeof vi.fn>).mockResolvedValue({
+    code: 0,
+    data: [
+      { label: '头像', value: 'avatar' },
+      { label: '素材', value: 'manual' },
+    ],
+  })
   const pinia = createPinia()
   setActivePinia(pinia)
   const store = useUserStore()
