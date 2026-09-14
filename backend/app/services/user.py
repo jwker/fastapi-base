@@ -57,6 +57,7 @@ async def create_user(
     email: str = "",
     phone: str = "",
     status: int = 1,
+    avatar: str = "",
     role_ids: list[int] | None = None,
 ) -> User:
     exists = (
@@ -72,6 +73,7 @@ async def create_user(
         email=email,
         phone=phone,
         status=status,
+        avatar=avatar,
     )
     if role_ids:
         roles = (await db.execute(select(Role).where(Role.id.in_(role_ids)))).scalars().all()

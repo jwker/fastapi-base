@@ -68,6 +68,7 @@ async def create_user(
         email=str(data.email) if data.email else "",
         phone=data.phone,
         status=data.status,
+        avatar=data.avatar,
         role_ids=data.role_ids,
     )
     return success(_to_out(user), "创建成功")

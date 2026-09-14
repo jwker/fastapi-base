@@ -393,13 +393,32 @@ async def test_three_level_menu_tree(client, admin_headers):
 
 
 @pytest.mark.asyncio
+async def test_create_user_avatar(client, admin_headers):
+    """管理员新增用户即可带头像：UserCreate 支持 avatar，创建即落库。"""
+    created = await client.post(
+        "/api/v1/users",
+        headers=admin_headers,
+        json={"username": "av_usr2", "password": "av12345", "avatar": "/uploads/202609/create.png"},
+    )
+    assert created.status_code in (200, 201)
+    assert created.json()["data"]["avatar"] == "/uploads/202609/create.png"
+
+    # 列表返回一致
+    listed = await client.get("/api/v1/users", headers=admin_headers)
+    item = next(
+        u for u in listed.json()["data"]["items"] if u["id"] == created.json()["data"]["id"]
+    )
+    assert item["avatar"] == "/uploads/202609/create.png"
+
+
+@pytest.mark.asyncio
 async def test_update_user_avatar(client, admin_headers):
     """管理员更新用户头像：UserUpdate 支持 avatar，返回与列表一致。"""
     created = await client.post(
         "/api/v1/users", headers=admin_headers, json={"username": "av_usr", "password": "av12345"}
     )
     user_id = created.json()["data"]["id"]
-    # 创建时头像默认空
+    # 创建时未传头像 → 默认空
     assert created.json()["data"]["avatar"] == ""
 
     resp = await client.put(
