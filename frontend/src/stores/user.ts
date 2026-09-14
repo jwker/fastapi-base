@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { authApi } from '@/api'
+import { useTagsStore } from '@/stores/tags'
 import type { UserInfo } from '@/types'
 
 interface UserState {
@@ -57,6 +58,8 @@ export const useUserStore = defineStore('user', {
       } catch {
         /* 忽略登出接口异常 */
       }
+      // 多标签页随登出清空（避免换账号看到旧标签）
+      useTagsStore().resetTags()
       this.$reset()
     },
   },

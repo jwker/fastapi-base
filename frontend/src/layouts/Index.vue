@@ -1,17 +1,31 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, provide, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
 import { useAppStore } from '@/stores/app'
 import { useUserStore } from '@/stores/user'
 import { usePermissionStore } from '@/stores/permission'
+import { useTagsStore } from '@/stores/tags'
 import SidebarMenu from './SidebarMenu.vue'
+import TagsView from '@/components/TagsView.vue'
 
 const route = useRoute()
 const router = useRouter()
 const appStore = useAppStore()
 const userStore = useUserStore()
 const permissionStore = usePermissionStore()
+const tagsStore = useTagsStore()
+
+// 刷新当前页：key 变化重建当前组件（keep-alive 缓存按 route.name+reloadKey 隔离）
+const reloadKey = ref(0)
+function reloadPage() {
+  reloadKey.value += 1
+}
+provide('reload', reloadPage)
+
+// 固定标签（首个菜单/仪表盘）——菜单已在路由守卫加载完，setup 同步初始化
+// （保证 TagsView 挂载 addView 前 affix 已就位，避免重复标签）
+tagsStore.initAffixTags(permissionStore.menus)
 
 const sidebarWidth = computed(() => (appStore.sidebarCollapsed ? '64px' : '220px'))
 const currentTitle = computed(() => (route.meta.title as string) || '')
@@ -87,7 +101,14 @@ async function handleLogout() {
       </el-header>
 
       <el-main class="layout-main">
-        <router-view />
+        <TagsView />
+        <div class="layout-content">
+          <router-view v-slot="{ Component }">
+            <keep-alive :include="tagsStore.cachedViews">
+              <component :is="Component" :key="String(route.name) + '-' + reloadKey" />
+            </keep-alive>
+          </router-view>
+        </div>
       </el-main>
     </el-container>
   </el-container>
@@ -168,6 +189,15 @@ async function handleLogout() {
 
 .layout-main {
   background: var(--fb-bg);
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.layout-content {
+  flex: 1;
+  overflow: auto;
   padding: 16px;
 }
 </style>

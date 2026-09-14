@@ -1,4 +1,5 @@
 <script setup lang="ts">
+defineOptions({ name: 'Dashboard' })
 import { computed, onMounted, ref } from 'vue'
 import { statsApi } from '@/api'
 import { useUserStore } from '@/stores/user'

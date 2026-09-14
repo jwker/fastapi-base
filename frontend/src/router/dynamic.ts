@@ -38,6 +38,8 @@ export function generateRoutes(menus: MenuItem[]): RouteRecordRaw[] {
               icon: m.icon,
               menuId: m.id,
               permission: m.permission_code ?? undefined,
+              // keep-alive include 匹配组件名（页面 defineOptions name 与此一致）
+              componentName: m.component,
             },
           })
         }
@@ -64,7 +66,7 @@ export function generateRoutes(menus: MenuItem[]): RouteRecordRaw[] {
             path: '',
             name: `menu-page-${top.id}`,
             component: comp,
-            meta: { title: top.name, icon: top.icon, menuId: top.id },
+            meta: { title: top.name, icon: top.icon, menuId: top.id, componentName: top.component },
           },
         ],
       })

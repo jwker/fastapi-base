@@ -1,4 +1,5 @@
 <script setup lang="ts">
+defineOptions({ name: 'RoleList' })
 import { nextTick, onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import ProTable, { type ActionConfig, type ColumnConfig } from '@/components/ProTable.vue'

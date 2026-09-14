@@ -1,4 +1,5 @@
 <script setup lang="ts">
+defineOptions({ name: 'AuditLogList' })
 /**
  * 操作审计日志：列表 + 筛选 + 详情抽屉 + 导出（audit:read）+ 导出后删除（audit:delete）。
  */

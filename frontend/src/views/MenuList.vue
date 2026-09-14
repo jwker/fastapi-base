@@ -1,4 +1,5 @@
 <script setup lang="ts">
+defineOptions({ name: 'MenuList' })
 import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import ProForm, { type ProFormField } from '@/components/ProForm.vue'

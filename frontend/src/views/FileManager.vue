@@ -1,4 +1,5 @@
 <script setup lang="ts">
+defineOptions({ name: 'FileManager' })
 /**
  * 文件管理（素材库）：上传（带备注）/ 列表 / 搜索 / 复制 URL / 删除。
  * - 权限：列表 file:read（菜单控制入口），删除 file:delete

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+defineOptions({ name: 'DictList' })
 import { reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import ProTable, { type ActionConfig, type ColumnConfig } from '@/components/ProTable.vue'

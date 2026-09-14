@@ -34,7 +34,7 @@ const constantRoutes: RouteRecordRaw[] = [
         path: '',
         name: 'ProfilePage',
         component: () => import('@/views/Profile.vue'),
-        meta: { title: '个人中心' },
+        meta: { title: '个人中心', componentName: 'Profile' },
       },
     ],
   },

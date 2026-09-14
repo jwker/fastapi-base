@@ -1,4 +1,5 @@
 <script setup lang="ts">
+defineOptions({ name: 'PermissionList' })
 import ProTable, { type ColumnConfig } from '@/components/ProTable.vue'
 import { permissionApi } from '@/api'
 
