@@ -17,8 +17,10 @@ const props = withDefaults(
     /** 大小上限（MB），前端预校验，后端仍兜底 */
     maxSizeMb?: number
     tip?: string
+    /** 来源打标（程序自动带，用户不可选）：avatar=头像 / manual=手动素材 */
+    source?: string
   }>(),
-  { modelValue: '', accept: '', maxSizeMb: 5, tip: '' },
+  { modelValue: '', accept: '', maxSizeMb: 5, tip: '', source: 'manual' },
 )
 const emit = defineEmits<{ (e: 'update:modelValue', url: string): void }>()
 
@@ -39,7 +41,7 @@ async function handleChange(option: { raw?: File }) {
   }
   uploading.value = true
   try {
-    const res = await fileApi.upload(file)
+    const res = await fileApi.upload(file, props.source)
     emit('update:modelValue', res.data.url)
     ElMessage.success('上传成功')
   } catch {

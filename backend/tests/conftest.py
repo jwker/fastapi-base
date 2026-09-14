@@ -87,7 +87,9 @@ async def setup_db():
 
 @pytest_asyncio.fixture
 async def client():
-    transport = ASGITransport(app=app)
+    # raise_app_exceptions=False：服务端异常转成 500 响应（与真实用户一致），
+    # 否则未捕获异常会直接抛给测试（httpx 默认行为）。
+    transport = ASGITransport(app=app, raise_app_exceptions=False)
     async with AsyncClient(transport=transport, base_url="http://test") as c:
         yield c
 

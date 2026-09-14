@@ -38,6 +38,9 @@ PERMISSIONS: list[dict] = [
     # 审计日志
     {"name": "操作日志查询", "code": "audit:read", "resource": "audit", "action": "read"},
     {"name": "操作日志删除", "code": "audit:delete", "resource": "audit", "action": "delete"},
+    # 文件管理
+    {"name": "文件查询", "code": "file:read", "resource": "file", "action": "read"},
+    {"name": "文件删除", "code": "file:delete", "resource": "file", "action": "delete"},
 ]
 
 # 角色：code -> (名称, 描述, 权限码集合)
@@ -63,6 +66,8 @@ ROLES: dict[str, tuple[str, str, list[str]]] = {
             "permission:assign",
             "audit:read",
             "audit:delete",
+            "file:read",
+            "file:delete",
         ],
     ),
     "user": (
@@ -130,6 +135,14 @@ MENUS: list[dict] = [
                 "children": [],
             },
         ],
+    },
+    {
+        "name": "文件管理",
+        "path": "/files",
+        "component": "FileManager",
+        "icon": "Folder",
+        "permission_code": "file:read",
+        "children": [],
     },
 ]
 

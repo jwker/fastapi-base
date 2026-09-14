@@ -49,7 +49,8 @@ describe('FileUpload 通用上传', () => {
     await flushPromises()
 
     expect(fileApi.upload).toHaveBeenCalledTimes(1)
-    expect(fileApi.upload).toHaveBeenCalledWith(file)
+    // 组件带默认来源 manual
+    expect(fileApi.upload).toHaveBeenCalledWith(file, 'manual')
     expect(wrapper.emitted('update:modelValue')?.at(-1)).toEqual(['/uploads/202609/abc.png'])
   })
 

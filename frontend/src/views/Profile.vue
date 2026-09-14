@@ -141,6 +141,7 @@ async function savePassword() {
                 v-model="profileForm.avatar"
                 accept=".jpg,.jpeg,.png,.gif,.webp,.svg"
                 :max-size-mb="5"
+                source="avatar"
                 tip="支持 jpg/png/gif/webp/svg，不超过 5MB"
               />
             </el-form-item>

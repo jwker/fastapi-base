@@ -105,10 +105,17 @@ export const auditLogApi = {
 }
 
 export const fileApi = {
-  /** 上传文件（FormData，axios 自动带 multipart boundary），返回可访问 URL */
-  upload: (file: File) => {
+  /** 上传文件（FormData，axios 自动带 multipart boundary），source 为来源打标 */
+  upload: (file: File, source = 'manual', remark = '') => {
     const form = new FormData()
     form.append('file', file)
+    if (source) form.append('source', source)
+    if (remark) form.append('remark', remark)
     return request.post<ApiResponse<FileRecord>>('/files/upload', form)
   },
+  /** 文件列表（分页 + 文件名/备注模糊搜索） */
+  list: (params: { page: number; page_size: number; keyword?: string }) =>
+    request.get<ApiResponse<PageResult<FileRecord>>>('/files', { params }),
+  /** 删除文件（记录 + 磁盘文件） */
+  remove: (id: number) => request.delete<ApiResponse<null>>(`/files/${id}`),
 }

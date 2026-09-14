@@ -97,7 +97,15 @@ export interface AuditLogRecord {
 }
 
 export interface FileRecord {
+  id: number
   url: string
   name: string
   size: number
+  mime_type: string
+  /** 来源（程序自动打标）：avatar=头像 / manual=文件管理页手动传 */
+  source: string
+  remark: string
+  created_by: number | null
+  created_by_name: string
+  created_at: string
 }
