@@ -51,6 +51,32 @@ class FakeRedis:
         self._store.pop(key, None)
         return 1
 
+    async def incr(self, key):
+        item = self._store.get(key)
+        if item and item[1] < time.time():
+            del self._store[key]
+            item = None
+        new_val = (int(item[0]) + 1) if item else 1
+        # 保留原 TTL（真实 Redis INCR 语义）
+        expire_at = item[1] if item else float("inf")
+        self._store[key] = (str(new_val), expire_at)
+        return new_val
+
+    async def expire(self, key, seconds):
+        item = self._store.get(key)
+        if item:
+            self._store[key] = (item[0], time.time() + seconds)
+            return 1
+        return 0
+
+    async def ttl(self, key):
+        item = self._store.get(key)
+        if not item or item[1] < time.time():
+            return -2  # 不存在
+        if item[1] == float("inf"):
+            return -1  # 无过期
+        return int(item[1] - time.time())
+
     async def eval(self, script, numkeys, *args):
         """模拟 refresh 轮换 Lua 脚本：GET 比对一致才 SET（CAS 原子语义）。"""
         key = args[0]
@@ -68,7 +94,7 @@ def fake_redis(monkeypatch):
     from app.core import redis as redis_module
 
     fake = FakeRedis()
-    for name in ("get", "set", "setex", "delete", "eval"):
+    for name in ("get", "set", "setex", "delete", "eval", "incr", "expire", "ttl"):
         monkeypatch.setattr(redis_module.redis_client, name, getattr(fake, name))
     yield fake
 

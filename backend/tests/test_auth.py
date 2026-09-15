@@ -225,3 +225,93 @@ async def test_refresh_concurrent_race(client, admin_user):
 
     again = await client.post("/api/v1/auth/refresh", json={"refresh_token": new_refresh})
     assert again.status_code == 200  # 新 token 有效
+
+
+# ---------- 登录失败锁定（任务八） ----------
+
+
+async def _create_normal_user(client, admin_headers, username: str, password: str):
+    resp = await client.post(
+        "/api/v1/users", headers=admin_headers, json={"username": username, "password": password}
+    )
+    assert resp.status_code in (200, 201), resp.text
+
+
+async def _login(client, username: str, password: str):
+    return await client.post(
+        "/api/v1/auth/login", json={"username": username, "password": password}
+    )
+
+
+@pytest.mark.asyncio
+async def test_login_lock_after_failures(client, admin_headers):
+    """连续失败 5 次 → 第 5 次即锁定(429)；锁定期内正确密码也拒绝。"""
+    await _create_normal_user(client, admin_headers, "locker", "pass123456")
+
+    for i in range(4):  # 第 1~4 次：400，提示剩余次数递减
+        resp = await _login(client, "locker", "wrong-pass")
+        assert resp.status_code == 400
+        assert f"还可尝试 {4 - i} 次" in resp.json()["message"], resp.text
+
+    resp5 = await _login(client, "locker", "wrong-pass")  # 第 5 次：锁定
+    assert resp5.status_code == 429
+    assert "已锁定" in resp5.json()["message"], resp5.text
+
+    resp6 = await _login(client, "locker", "pass123456")  # 正确密码也被拒
+    assert resp6.status_code == 429
+    assert "已锁定" in resp6.json()["message"]
+
+
+@pytest.mark.asyncio
+async def test_login_lock_expires(client, admin_headers, fake_redis):
+    """TTL 到期（此处以删除 key 模拟）自动解锁。"""
+    await _create_normal_user(client, admin_headers, "locker2", "pass123456")
+    for _ in range(5):
+        await _login(client, "locker2", "wrong-pass")
+
+    assert (await _login(client, "locker2", "pass123456")).status_code == 429
+
+    # 模拟 TTL 过期：计数 key 消失 → 解锁
+    from app.core.redis import KEY_LOGIN_FAIL
+
+    await fake_redis.delete(KEY_LOGIN_FAIL.format(username="locker2"))
+
+    resp = await _login(client, "locker2", "pass123456")
+    assert resp.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_login_success_clears_counter(client, admin_headers):
+    """登录成功清空失败计数：失败 3 次 → 成功 → 再失败从 1 重新计。"""
+    await _create_normal_user(client, admin_headers, "locker3", "pass123456")
+
+    for _ in range(3):
+        assert (await _login(client, "locker3", "wrong-pass")).status_code == 400
+
+    assert (await _login(client, "locker3", "pass123456")).status_code == 200
+
+    resp = await _login(client, "locker3", "wrong-pass")
+    assert resp.status_code == 400
+    assert "还可尝试 4 次" in resp.json()["message"]
+
+
+@pytest.mark.asyncio
+async def test_admin_superuser_not_locked(client, admin_user):
+    """超管豁免：admin 连续错 6 次不锁定（每次 400，无 429）。"""
+    for _ in range(6):
+        resp = await _login(client, "admin", "wrong-pass")
+        assert resp.status_code == 400
+
+    resp = await _login(client, "admin", "admin123")
+    assert resp.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_unknown_user_also_locked(client):
+    """未知用户名同样计数锁定（防撞库/用户名枚举绕过）。"""
+    for _ in range(4):
+        resp = await _login(client, "ghost-user", "whatever1")
+        assert resp.status_code == 400
+
+    resp = await _login(client, "ghost-user", "whatever1")
+    assert resp.status_code == 429

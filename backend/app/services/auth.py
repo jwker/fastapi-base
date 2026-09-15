@@ -14,6 +14,12 @@ from app.core.auth import (
     store_refresh_token,
 )
 from app.core.config import settings
+from app.core.login_security import (
+    clear_login_fail,
+    get_login_fail,
+    lock_remaining_minutes,
+    record_login_fail,
+)
 from app.core.response import AppError
 from app.core.security import hash_password, verify_password
 from app.models.user import User
@@ -22,11 +28,32 @@ from app.models.user import User
 async def authenticate(db: AsyncSession, username: str, password: str) -> tuple[User, str, str]:
     result = await db.execute(select(User).where(User.username == username))
     user = result.scalar_one_or_none()
+    is_super = bool(user and user.is_superuser)
+
+    # 锁定检查（超管豁免；先于密码校验——锁定期内正确密码也拒绝）
+    if not is_super:
+        count, _ = await get_login_fail(username)
+        if count >= settings.LOGIN_FAIL_LIMIT:
+            minutes = await lock_remaining_minutes(username)
+            raise AppError(429, f"账号已锁定，请 {minutes} 分钟后再试")
+
     if not user or not verify_password(password, user.password_hash):
+        # 失败计数（超管豁免）
+        if not is_super:
+            new_count = await record_login_fail(username)
+            if new_count >= settings.LOGIN_FAIL_LIMIT:
+                raise AppError(
+                    429, f"密码错误次数过多，账号已锁定 {settings.LOGIN_LOCK_MINUTES} 分钟"
+                )
+            raise AppError(
+                400, f"用户名或密码错误（还可尝试 {settings.LOGIN_FAIL_LIMIT - new_count} 次）"
+            )
         raise AppError(400, "用户名或密码错误")
     if user.status != 1:
         raise AppError(403, "账号已被禁用")
 
+    # 登录成功：清空失败计数并记录登录时间
+    await clear_login_fail(username)
     user.last_login_at = datetime.now()
     await db.commit()
 

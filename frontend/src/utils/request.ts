@@ -95,7 +95,10 @@ service.interceptors.response.use(
     if (status === 403) {
       ElMessage.error((error.response?.data as any)?.message || '没有权限')
     } else if (status === 429) {
-      ElMessage.error('请求过于频繁，请稍后再试')
+      // 优先透传后端业务文案（登录锁定提示）；slowapi 限流响应无 message → 走默认文案
+      ElMessage.error(
+        (error.response?.data as any)?.message || '请求过于频繁，请稍后再试',
+      )
     } else if (status && status >= 400 && status < 500) {
       // 400/404 等：取后端业务错误信息（登录失败、用户名已存在、资源不存在等）
       ElMessage.error((error.response?.data as any)?.message || '请求失败')

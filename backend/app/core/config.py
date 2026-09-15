@@ -35,6 +35,10 @@ class Settings(BaseSettings):
     # 限流
     RATE_LIMIT_PER_MINUTE: int = 60
 
+    # 登录失败锁定（RuoYi 同款默认：5 次 / 10 分钟，Redis 计数滑动窗口）
+    LOGIN_FAIL_LIMIT: int = 5
+    LOGIN_LOCK_MINUTES: int = 10
+
     # 初始化
     INIT_ADMIN_USERNAME: str = "admin"
     INIT_ADMIN_PASSWORD: str = "admin123"
