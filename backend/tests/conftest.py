@@ -51,6 +51,16 @@ class FakeRedis:
         self._store.pop(key, None)
         return 1
 
+    async def eval(self, script, numkeys, *args):
+        """模拟 refresh 轮换 Lua 脚本：GET 比对一致才 SET（CAS 原子语义）。"""
+        key = args[0]
+        old_token, new_token, ttl = args[1], args[2], args[3]
+        stored = await self.get(key)
+        if stored == old_token:
+            await self.set(key, new_token, ex=int(ttl))
+            return 1
+        return 0
+
 
 @pytest.fixture(autouse=True)
 def fake_redis(monkeypatch):
@@ -58,7 +68,7 @@ def fake_redis(monkeypatch):
     from app.core import redis as redis_module
 
     fake = FakeRedis()
-    for name in ("get", "set", "setex", "delete"):
+    for name in ("get", "set", "setex", "delete", "eval"):
         monkeypatch.setattr(redis_module.redis_client, name, getattr(fake, name))
     yield fake
 

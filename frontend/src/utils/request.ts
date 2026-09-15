@@ -9,10 +9,34 @@ const service = axios.create({
   withCredentials: false,
 })
 
-// 请求拦截器：自动携带 Access Token
-service.interceptors.request.use((config: InternalAxiosRequestConfig) => {
+// 请求拦截器：自动携带 Access Token；剩余 <5min 时提前续期（避免过期瞬间并发 401）
+const PRE_REFRESH_SECONDS = 5 * 60
+
+/** 解析 JWT payload 的 exp（秒级时间戳），解析失败返回 null */
+function getJwtExp(token: string): number | null {
+  try {
+    const payload = JSON.parse(
+      atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')),
+    )
+    return typeof payload.exp === 'number' ? payload.exp : null
+  } catch {
+    return null
+  }
+}
+
+service.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
   const userStore = useUserStore()
   if (userStore.accessToken) {
+    // 提前续期：仅对业务请求（排除 login/refresh/logout，避免自递归）
+    const url = config.url || ''
+    const isAuthRequest = /\/auth\/(login|refresh|logout)/.test(url)
+    if (!isAuthRequest) {
+      const exp = getJwtExp(userStore.accessToken)
+      if (exp !== null && exp * 1000 - Date.now() < PRE_REFRESH_SECONDS * 1000) {
+        // single-flight 保证并发请求只触发一次刷新；失败静默放行，由 401 流程兜底
+        await userStore.refreshTokens()
+      }
+    }
     config.headers.Authorization = `Bearer ${userStore.accessToken}`
   }
   return config

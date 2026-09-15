@@ -3,6 +3,9 @@ import { authApi } from '@/api'
 import { useTagsStore } from '@/stores/tags'
 import type { UserInfo } from '@/types'
 
+// 模块级刷新锁：并发 401 共享同一次刷新（见 refreshTokens）
+let refreshPromise: Promise<boolean> | null = null
+
 interface UserState {
   accessToken: string
   refreshToken: string
@@ -29,14 +32,24 @@ export const useUserStore = defineStore('user', {
       this.userInfo = data.user
     },
     async refreshTokens(): Promise<boolean> {
-      try {
-        const res = await authApi.refresh(this.refreshToken)
-        this.accessToken = res.data.access_token
-        this.refreshToken = res.data.refresh_token
-        return true
-      } catch {
-        return false
+      // single-flight：并发 401 只发一次刷新，所有人共享同一结果。
+      // 否则多个 refresh 携带同一旧 token 并发，后端轮换后只有一个有效，
+      // 其余 401 → 触发登出（15 分钟掉线的根因）。
+      if (!refreshPromise) {
+        refreshPromise = (async () => {
+          try {
+            const res = await authApi.refresh(this.refreshToken)
+            this.accessToken = res.data.access_token
+            this.refreshToken = res.data.refresh_token
+            return true
+          } catch {
+            return false
+          } finally {
+            refreshPromise = null
+          }
+        })()
       }
+      return refreshPromise
     },
     async fetchUserInfo() {
       const res = await authApi.me()

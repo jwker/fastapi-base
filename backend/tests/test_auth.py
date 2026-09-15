@@ -194,3 +194,34 @@ async def test_profile_update_ignores_privileged_fields(client, admin_headers):
     assert data["username"] == "admin"  # 登录名未被篡改
     assert data["is_superuser"] is True  # 超管标志未被篡改
     assert data["nickname"] == "正常昵称"
+
+
+@pytest.mark.asyncio
+async def test_refresh_concurrent_race(client, admin_user):
+    """并发 refresh（同一旧 token）：原子轮换保证只有一个成功，杜绝 token 分叉。
+
+    修复前：verify-then-store 非原子 → 并发全部 200 但仅最后一个 token 有效（前端踢下线）。
+    修复后：CAS 轮换，只允许一个消费旧 token。
+    """
+    import asyncio
+
+    login = await client.post(
+        "/api/v1/auth/login", json={"username": "admin", "password": "admin123"}
+    )
+    old_refresh = login.json()["data"]["tokens"]["refresh_token"]
+
+    async def do_refresh():
+        return await client.post("/api/v1/auth/refresh", json={"refresh_token": old_refresh})
+
+    # 并发 3 个 refresh：恰好 1 个成功、2 个 401
+    results = await asyncio.gather(do_refresh(), do_refresh(), do_refresh())
+    statuses = sorted(r.status_code for r in results)
+    assert statuses == [200, 401, 401]
+
+    # 成功者返回的新 token 是唯一有效 token
+    ok_resp = next(r for r in results if r.status_code == 200)
+    new_refresh = ok_resp.json()["data"]["refresh_token"]
+    assert new_refresh != old_refresh
+
+    again = await client.post("/api/v1/auth/refresh", json={"refresh_token": new_refresh})
+    assert again.status_code == 200  # 新 token 有效

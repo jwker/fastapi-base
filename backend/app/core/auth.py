@@ -54,6 +54,32 @@ async def verify_refresh_token(user_id: int, refresh_token: str) -> bool:
     return stored == refresh_token
 
 
+# 原子轮换：校验旧值 + 写入新值一步完成（防并发 refresh 竞态导致 token 分叉）
+_REFRESH_ROTATE_SCRIPT = """
+local stored = redis.call('GET', KEYS[1])
+if stored == ARGV[1] then
+  redis.call('SET', KEYS[1], ARGV[2], 'EX', ARGV[3])
+  return 1
+end
+return 0
+"""
+
+
+async def rotate_refresh_token(
+    user_id: int, old_token: str, new_token: str, ttl_seconds: int
+) -> bool:
+    """仅当 Redis 中仍是 old_token 时写入 new_token（CAS）。返回是否轮换成功。"""
+    ok = await redis_client.eval(
+        _REFRESH_ROTATE_SCRIPT,
+        1,
+        f"{KEY_REFRESH_TOKEN}:{user_id}",
+        old_token,
+        new_token,
+        ttl_seconds,
+    )
+    return bool(ok)
+
+
 async def revoke_refresh_token(user_id: int) -> None:
     await redis_client.delete(f"{KEY_REFRESH_TOKEN}:{user_id}")
 
