@@ -112,7 +112,7 @@ make init-db        # 初始化数据（幂等）
 make up             # Docker 一键启动
 ```
 
-详见 [docs/deployment.md](docs/deployment.md) 部署文档。
+详见 [docs/deployment.md](docs/deployment.md) 部署文档，测试体系见 [docs/testing.md](docs/testing.md) 测试说明。
 
 ## 目录结构
 
