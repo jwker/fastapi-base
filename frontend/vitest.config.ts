@@ -12,5 +12,7 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     globals: true,
+    // e2e 用例由 Playwright 运行，排除出 vitest
+    exclude: ['e2e/**', 'node_modules/**', 'dist/**'],
   },
 })

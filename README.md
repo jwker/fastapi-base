@@ -106,6 +106,7 @@ pnpm install && pnpm dev
 make dev-backend    # 后端热重载
 make dev-frontend   # 前端开发
 make test           # 后端测试
+make e2e            # 前端 E2E（Playwright，需后端 8000 与前端 5173 已启动）
 make migrate        # 数据库迁移
 make init-db        # 初始化数据（幂等）
 make up             # Docker 一键启动

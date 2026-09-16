@@ -26,6 +26,9 @@ check: ## 本地完整自检（与 GitHub CI 命令链一致，提交前必跑�
 test: ## 运行后端测试
 	cd backend && PYTHONPATH=. uv run pytest
 
+e2e: ## 运行前端 E2E（需后端 8000 与前端 5173 已启动）
+	cd frontend && pnpm e2e
+
 lint: ## 代码检查(ruff + vue-tsc)
 	cd backend && uv run ruff check app tests scripts
 	cd frontend && pnpm build
