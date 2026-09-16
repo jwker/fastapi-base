@@ -2,6 +2,7 @@ import request from '@/utils/request'
 import type {
   ApiResponse,
   AuditLogRecord,
+  ConfigRecord,
   DictItemRecord,
   DictOption,
   DictTypeRecord,
@@ -147,4 +148,23 @@ export const dictApi = {
   removeItem: (id: number) => request.delete<ApiResponse<null>>(`/dicts/items/${id}`),
   /** 业务取用：按类型编码取启用项 */
   byType: (code: string) => request.get<ApiResponse<DictOption[]>>(`/dicts/type/${code}`),
+}
+
+// ---------- 系统参数 ----------
+export const configApi = {
+  /** 参数分页 */
+  list: (params: { page: number; page_size: number; keyword?: string }) =>
+    request.get<ApiResponse<PageResult<ConfigRecord>>>('/configs', { params }),
+  create: (data: { key: string; value: string; value_type?: string; remark?: string }) =>
+    request.post<ApiResponse<ConfigRecord>>('/configs', data),
+  update: (
+    id: number,
+    data: { value: string; value_type?: string; remark?: string },
+  ) => request.put<ApiResponse<ConfigRecord>>(`/configs/${id}`, data),
+  remove: (id: number) => request.delete<ApiResponse<null>>(`/configs/${id}`),
+  /** 业务取用：按逗号分隔 key 批量读取（仅需登录） */
+  byKeys: (keys: string[]) =>
+    request.get<ApiResponse<Record<string, string>>>('/configs/by-key', {
+      params: { keys: keys.join(',') },
+    }),
 }

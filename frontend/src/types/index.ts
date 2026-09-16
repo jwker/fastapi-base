@@ -132,8 +132,18 @@ export interface DictItemRecord {
   created_at: string
 }
 
-/** 业务取用字典项（GET /dicts/type/{type}） */
-export interface DictOption {
+// ---------- 系统参数 ----------
+export interface ConfigRecord {
+  id: number
+  key: string
+  value: string
+  value_type: string
+  remark: string
+  created_at: string
+  updated_at: string
+}
+
+/** 业务取用字典项（GET /dicts/type/{type}） */export interface DictOption {
   label: string
   value: string
 }

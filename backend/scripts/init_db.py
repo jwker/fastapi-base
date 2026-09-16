@@ -10,6 +10,7 @@ from sqlalchemy import select
 from app.core.config import settings
 from app.core.database import AsyncSessionLocal
 from app.core.security import hash_password
+from app.models.config import SysConfig
 from app.models.dict import DictItem, DictType
 from app.models.menu import Menu
 from app.models.permission import Permission
@@ -45,6 +46,9 @@ PERMISSIONS: list[dict] = [
     # 数据字典
     {"name": "字典查询", "code": "dict:read", "resource": "dict", "action": "read"},
     {"name": "字典维护", "code": "dict:write", "resource": "dict", "action": "write"},
+    # 系统参数
+    {"name": "参数查询", "code": "config:read", "resource": "config", "action": "read"},
+    {"name": "参数维护", "code": "config:write", "resource": "config", "action": "write"},
 ]
 
 # 角色：code -> (名称, 描述, 权限码集合)
@@ -74,6 +78,8 @@ ROLES: dict[str, tuple[str, str, list[str]]] = {
             "file:delete",
             "dict:read",
             "dict:write",
+            "config:read",
+            "config:write",
         ],
     ),
     "user": (
@@ -148,6 +154,14 @@ MENUS: list[dict] = [
                 "permission_code": "dict:read",
                 "children": [],
             },
+            {
+                "name": "参数设置",
+                "path": "/configs",
+                "component": "ConfigList",
+                "icon": "Tools",
+                "permission_code": "config:read",
+                "children": [],
+            },
         ],
     },
     {
@@ -161,6 +175,12 @@ MENUS: list[dict] = [
 ]
 
 # 字典种子：type -> (名称, 备注, [(label, value, sort, is_default), ...])
+# 系统参数示例（key, value, value_type, remark）
+CONFIGS: list[tuple[str, str, str, str]] = [
+    ("site_name", "FastAPI Base", "string", "站点名称，前端标题等处展示"),
+    ("upload_max_size", "10", "int", "单文件上传大小上限（MB），业务侧校验"),
+]
+
 # 值与业务代码实际存储值对齐：
 # sys_status -> User/Role.status(int)；file_source -> File.source；
 # audit_action -> OperationLog.action（middleware/audit.py infer_action）。
@@ -194,6 +214,16 @@ DICTS: dict[str, tuple[str, str, list[tuple[str, str, int, bool]]]] = {
         ],
     ),
 }
+
+
+async def init_configs(db) -> None:
+    """系统参数示例，按 key 增量补缺（幂等，可重复执行；已存在的 key 不覆盖）。"""
+    for key, value, value_type, remark in CONFIGS:
+        exists = (
+            await db.execute(select(SysConfig).where(SysConfig.key == key))
+        ).scalar_one_or_none()
+        if exists is None:
+            db.add(SysConfig(key=key, value=value, value_type=value_type, remark=remark))
 
 
 async def init_dicts(db) -> None:
@@ -328,11 +358,12 @@ async def main() -> None:
             roles = await init_roles(db, perm_mapping)
             await init_superuser(db, roles["super_admin"])
             await init_menus(db, roles)
+            await init_configs(db)
             await init_dicts(db)
         await db.commit()
         print(
             f"初始化完成：权限 {len(PERMISSIONS)} 个，角色 {len(ROLES)} 个，"
-            f"字典 {len(DICTS)} 个，超管 "
+            f"配置 {len(CONFIGS)} 个，字典 {len(DICTS)} 个，超管 "
             f"{settings.INIT_ADMIN_USERNAME}/{settings.INIT_ADMIN_PASSWORD}"
         )
 
