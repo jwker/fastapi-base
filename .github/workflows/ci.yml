@@ -138,6 +138,16 @@ jobs:
             curl -sf http://localhost:4173/ && exit 0 || sleep 2
           done
           echo "frontend not ready"; tail -30 /tmp/frontend.log; exit 1
+      - name: Diagnose backend & proxy
+        run: |
+          echo "=== backend process ==="; ps aux | grep -E "uvicorn|uv run" | grep -v grep | head -3
+          echo "=== backend.log ==="; tail -40 /tmp/backend.log
+          echo "=== direct login (8000) ==="
+          curl -s -o /tmp/login_direct.json -w "HTTP %{http_code}\n" -X POST http://localhost:8000/api/v1/auth/login -H "Content-Type: application/json" -H "Origin: http://localhost:4173" -d '{"username":"admin","password":"admin123"}'
+          head -c 300 /tmp/login_direct.json; echo
+          echo "=== login via proxy (4173) ==="
+          curl -s -o /tmp/login_proxy.json -w "HTTP %{http_code}\n" -X POST http://localhost:4173/api/v1/auth/login -H "Content-Type: application/json" -H "Origin: http://localhost:4173" -d '{"username":"admin","password":"admin123"}'
+          head -c 300 /tmp/login_proxy.json; echo
       - name: Run E2E
         working-directory: frontend
         env:
