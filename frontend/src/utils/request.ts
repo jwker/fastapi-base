@@ -4,7 +4,8 @@ import { useUserStore } from '@/stores/user'
 import router from '@/router'
 
 const service = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
+  // 后端统一挂载在 /api/v1；默认值对齐该前缀（CI/新环境无 .env 时也不能回退到 /api）
+  baseURL: import.meta.env.VITE_API_BASE_URL || '/api/v1',
   timeout: 15000,
   withCredentials: false,
 })

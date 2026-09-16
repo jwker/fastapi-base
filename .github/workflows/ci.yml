@@ -127,6 +127,9 @@ jobs:
           echo "backend not ready"; tail -30 /tmp/backend.log; exit 1
       - name: Build frontend
         working-directory: frontend
+        env:
+          # CI 无 .env（被 gitignore），显式注入 API 前缀，避免回退默认值导致 404
+          VITE_API_BASE_URL: /api/v1
         run: pnpm build
       - name: Start frontend (vite preview)
         working-directory: frontend
@@ -138,27 +141,6 @@ jobs:
             curl -sf http://localhost:4173/ && exit 0 || sleep 2
           done
           echo "frontend not ready"; tail -30 /tmp/frontend.log; exit 1
-      - name: Diagnose backend & proxy
-        run: |
-          echo "=== backend process ==="; ps aux | grep -E "uvicorn|uv run" | grep -v grep | head -3
-          echo "=== backend.log ==="; tail -40 /tmp/backend.log
-          echo "=== direct login (8000) ==="
-          curl -s -o /tmp/login_direct.json -w "HTTP %{http_code}\n" -X POST http://localhost:8000/api/v1/auth/login -H "Content-Type: application/json" -H "Origin: http://localhost:4173" -d '{"username":"admin","password":"admin123"}'
-          head -c 300 /tmp/login_direct.json; echo
-          echo "=== login via proxy (4173) ==="
-          curl -s -o /tmp/login_proxy.json -w "HTTP %{http_code}\n" -X POST http://localhost:4173/api/v1/auth/login -H "Content-Type: application/json" -H "Origin: http://localhost:4173" -d '{"username":"admin","password":"admin123"}'
-          head -c 300 /tmp/login_proxy.json; echo
-          echo "=== frontend env ==="; ls -la frontend/.env* 2>/dev/null || echo "(no .env)"
-          echo "=== dist baseURL ==="; grep -oh "baseURL:[^,}]*" frontend/dist/assets/*.js | sort -u | head -3
-          echo "=== browser-like preflight (OPTIONS) ==="
-          curl -s -i -X OPTIONS http://localhost:4173/api/v1/auth/login -H "Origin: http://localhost:4173" -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: content-type" | head -6
-          echo "=== browser-like failed login (400) ==="
-          curl -s -i -X POST http://localhost:4173/api/v1/auth/login -H "Content-Type: application/json" -H "Origin: http://localhost:4173" -d '{"username":"admin","password":"wrongpass123"}' | head -6
-      - name: Playwright browser-level diagnose
-        working-directory: frontend
-        env:
-          E2E_BASE_URL: http://localhost:4173
-        run: pnpm exec playwright test e2e/ci-diagnose.spec.ts --reporter=line
       - name: Run E2E
         working-directory: frontend
         env:
