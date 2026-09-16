@@ -11,6 +11,7 @@ from prometheus_fastapi_instrumentator import Instrumentator
 from slowapi.errors import RateLimitExceeded
 
 from app.api.v1 import (
+    announcements,
     audit_logs,
     auth,
     configs,
@@ -83,6 +84,7 @@ app.include_router(audit_logs.router, prefix=settings.API_V1_PREFIX)
 app.include_router(files.router, prefix=settings.API_V1_PREFIX)
 app.include_router(dicts.router, prefix=settings.API_V1_PREFIX)
 app.include_router(configs.router, prefix=settings.API_V1_PREFIX)
+app.include_router(announcements.router, prefix=settings.API_V1_PREFIX)
 
 
 # 上传文件静态访问（开发直连 FastAPI；生产由 Nginx 托管 uploads 共享卷，不走 Python）

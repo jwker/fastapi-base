@@ -49,6 +49,9 @@ PERMISSIONS: list[dict] = [
     # 系统参数
     {"name": "参数查询", "code": "config:read", "resource": "config", "action": "read"},
     {"name": "参数维护", "code": "config:write", "resource": "config", "action": "write"},
+    # 通知公告
+    {"name": "公告查询", "code": "announce:read", "resource": "announce", "action": "read"},
+    {"name": "公告维护", "code": "announce:write", "resource": "announce", "action": "write"},
 ]
 
 # 角色：code -> (名称, 描述, 权限码集合)
@@ -80,6 +83,8 @@ ROLES: dict[str, tuple[str, str, list[str]]] = {
             "dict:write",
             "config:read",
             "config:write",
+            "announce:read",
+            "announce:write",
         ],
     ),
     "user": (
@@ -162,7 +167,23 @@ MENUS: list[dict] = [
                 "permission_code": "config:read",
                 "children": [],
             },
+            {
+                "name": "公告管理",
+                "path": "/notices",
+                "component": "NoticeList",
+                "icon": "Bell",
+                "permission_code": "announce:read",
+                "children": [],
+            },
         ],
+    },
+    {
+        "name": "公告",
+        "path": "/announcements",
+        "component": "Announcements",
+        "icon": "BellFilled",
+        "permission_code": None,
+        "children": [],
     },
     {
         "name": "文件管理",
@@ -211,6 +232,14 @@ DICTS: dict[str, tuple[str, str, list[tuple[str, str, int, bool]]]] = {
             ("修改", "update", 4, False),
             ("删除", "delete", 5, False),
             ("其他", "other", 6, True),
+        ],
+    ),
+    "sys_announce_type": (
+        "公告类型",
+        "通知公告类型（Announcement.type）",
+        [
+            ("通知", "notice", 1, True),
+            ("公告", "announcement", 2, False),
         ],
     ),
 }

@@ -1,5 +1,6 @@
 """模型统一导出，保证 Alembic autogenerate 与初始化脚本能发现全部表。"""
 
+from app.models.announcement import Announcement
 from app.models.associations import role_menus, role_permissions, user_roles
 from app.models.config import SysConfig
 from app.models.dict import DictItem, DictType
@@ -20,6 +21,7 @@ __all__ = [
     "DictType",
     "DictItem",
     "SysConfig",
+    "Announcement",
     "user_roles",
     "role_permissions",
     "role_menus",

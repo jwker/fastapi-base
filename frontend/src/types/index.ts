@@ -147,3 +147,28 @@ export interface ConfigRecord {
   label: string
   value: string
 }
+
+// ---------- 通知公告 ----------
+export interface AnnouncementRecord {
+  id: number
+  title: string
+  content: string
+  type: string
+  status: number
+  is_top: boolean
+  expire_time: string | null
+  publish_time: string | null
+  created_by: number | null
+  created_by_name: string
+  created_at: string
+  updated_at: string
+}
+
+/** 用户端公告列表项（不含正文） */
+export interface AnnouncementSimple {
+  id: number
+  title: string
+  type: string
+  is_top: boolean
+  publish_time: string | null
+}

@@ -1,5 +1,7 @@
 import request from '@/utils/request'
 import type {
+  AnnouncementRecord,
+  AnnouncementSimple,
   ApiResponse,
   AuditLogRecord,
   ConfigRecord,
@@ -167,4 +169,39 @@ export const configApi = {
     request.get<ApiResponse<Record<string, string>>>('/configs/by-key', {
       params: { keys: keys.join(',') },
     }),
+}
+
+// ---------- 通知公告 ----------
+export const announcementApi = {
+  /** 管理端分页 */
+  list: (params: { page: number; page_size: number; keyword?: string }) =>
+    request.get<ApiResponse<PageResult<AnnouncementRecord>>>('/announcements', { params }),
+  create: (data: {
+    title: string
+    content: string
+    type?: string
+    is_top?: boolean
+    expire_time?: string | null
+  }) => request.post<ApiResponse<AnnouncementRecord>>('/announcements', data),
+  update: (
+    id: number,
+    data: {
+      title?: string
+      content?: string
+      type?: string
+      is_top?: boolean
+      expire_time?: string | null
+    },
+  ) => request.put<ApiResponse<AnnouncementRecord>>(`/announcements/${id}`, data),
+  remove: (id: number) => request.delete<ApiResponse<null>>(`/announcements/${id}`),
+  /** 发布（草稿→已发布，写 publish_time） */
+  publish: (id: number) => request.put<ApiResponse<AnnouncementRecord>>(`/announcements/${id}/publish`),
+  /** 下线（已发布→已下线） */
+  offline: (id: number) => request.put<ApiResponse<AnnouncementRecord>>(`/announcements/${id}/offline`),
+  /** 用户端列表（仅登录，已发布且未过期，置顶优先） */
+  publicList: (params: { page: number; page_size: number }) =>
+    request.get<ApiResponse<PageResult<AnnouncementSimple>>>('/announcements/public', { params }),
+  /** 用户端详情（仅登录） */
+  publicDetail: (id: number) =>
+    request.get<ApiResponse<AnnouncementRecord>>(`/announcements/public/${id}`),
 }
