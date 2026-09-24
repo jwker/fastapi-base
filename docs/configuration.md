@@ -30,8 +30,8 @@
 
 | 变量 | 说明 |
 | --- | --- |
-| `DATABASE_URL` | 数据库连接串。**混合模式（本地跑后端）时生效**；全 Docker 时被 compose 注入的容器内连接串（`@db:5432`）覆盖，不生效 |
-| `REDIS_URL` | Redis 连接串。同上，全 Docker 时被 `redis://redis:6379/0` 覆盖 |
+| `DATABASE_URL` | 数据库连接串。**默认引用 `POSTGRES_USER/PASSWORD/PORT/DB`，指向 compose 容器库**（混合模式需先 `docker compose up -d db redis`）；文件内留有一条注释的备选值（连本机自装 PostgreSQL），不用容器时取消注释即可切换。全 Docker 时被 compose 注入的容器内连接串（`@db:5432`）覆盖，不生效 |
+| `REDIS_URL` | Redis 连接串，引用 `REDIS_PORT`（指向容器映射端口）。全 Docker 时被 `redis://redis:6379/0` 覆盖 |
 
 ### 中间件与安全组
 
@@ -100,8 +100,8 @@ Makefile ──→ PORT 默认读根 .env BACKEND_PORT（命令行 PORT=8011 可
 
 1. **改后端端口**：只改根 `.env` 的 `BACKEND_PORT`；临时覆盖用 `make dev-backend PORT=8011`
 2. **改前端端口**：只改根 `.env` 的 `FRONTEND_PORT`（dev/CORS/Docker 映射/E2E 自动跟随）；临时覆盖用 `pnpm dev --port 5174`
-3. **改中间件宿主端口**：根 `.env` 的 `POSTGRES_PORT` / `REDIS_PORT`；**改后需同步根 `.env` 的 `DATABASE_URL` / `REDIS_URL` 端口**
-4. **改连接串**：根 `.env` 的 `DATABASE_URL` / `REDIS_URL`（混合/本地模式）
+3. **改中间件宿主端口**：根 `.env` 的 `POSTGRES_PORT` / `REDIS_PORT`（`DATABASE_URL` / `REDIS_URL` 引用它们，自动跟随）
+4. **改连接串**：根 `.env` 的 `DATABASE_URL` / `REDIS_URL`（混合/本地模式；默认连容器库，备选注释行可切本机自装库）
 5. **改 CORS**：默认无需改（跟随 FRONTEND_PORT）；显式覆盖设根 `.env` 或 backend/.env 的 `ALLOWED_ORIGINS`
 6. **改密钥/超管密码**：生产环境必须改根 `.env` 与 backend/.env 的 `SECRET_KEY`、`INIT_ADMIN_PASSWORD`（prod 护栏会拒绝默认值启动）
 7. **新增环境变量**：按消费方选择位置——Compose/多端共享 → 根 `.env`；仅后端 → `backend/.env`；仅前端浏览器可见 → `frontend/.env`（VITE_ 前缀）
