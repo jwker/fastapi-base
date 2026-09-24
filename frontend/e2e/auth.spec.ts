@@ -1,7 +1,7 @@
 /**
  * E2E：认证主链路（登录成功 / 登录失败 / 登出）
  *
- * 前置：后端 8000 运行中（含种子 admin/admin123），前端 5173（vite dev）
+ * 前置：后端（端口见根 .env BACKEND_PORT）运行中（含种子 admin/admin123），前端（端口见根 .env FRONTEND_PORT，vite dev）
  * 或 CI 中 E2E_BASE_URL 指向 vite preview。
  */
 import { test, expect } from '@playwright/test'

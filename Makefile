@@ -2,6 +2,13 @@
 .PHONY: help install dev-backend dev-frontend check test lint format migrate init-db \
 	up down build logs clean
 
+# 后端端口默认从根 .env 的 BACKEND_PORT 读取（唯一事实源）；命令行覆盖：make dev-backend PORT=8011
+# 前端 dev 端口由根目录 .env 的 FRONTEND_PORT 统一控制（唯一事实源），临时覆盖：pnpm dev --port 5174
+PORT := $(shell grep -E '^BACKEND_PORT=' .env 2>/dev/null | head -1 | cut -d= -f2)
+ifeq ($(strip $(PORT)),)
+PORT := 8000
+endif
+
 help: ## 显示帮助
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2}'
 
@@ -10,9 +17,9 @@ install: ## 安装后端(uv)与前端(pnpm)依赖
 	cd frontend && pnpm install
 
 dev-backend: ## 启动后端开发服务(热重载)
-	cd backend && PYTHONPATH=. uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+	cd backend && PYTHONPATH=. uv run uvicorn app.main:app --reload --host 0.0.0.0 --port $(PORT)
 
-dev-frontend: ## 启动前端开发服务
+dev-frontend: ## 启动前端开发服务（端口由根 .env FRONTEND_PORT 控制）
 	cd frontend && pnpm dev
 
 check: ## 本地完整自检（与 GitHub CI 命令链一致，提交前必跑）
@@ -26,7 +33,7 @@ check: ## 本地完整自检（与 GitHub CI 命令链一致，提交前必跑�
 test: ## 运行后端测试
 	cd backend && PYTHONPATH=. uv run pytest
 
-e2e: ## 运行前端 E2E（需后端 8000 与前端 5173 已启动）
+e2e: ## 运行前端 E2E（需后端与前端已启动，端口见根 .env BACKEND_PORT / FRONTEND_PORT）
 	cd frontend && pnpm e2e
 
 lint: ## 代码检查(ruff + vue-tsc)

@@ -2,12 +2,14 @@
 
 from functools import lru_cache
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=".env",
+        # 本地 backend/.env 优先，根 .env 补充（FRONTEND_PORT 等跨层键的唯一源）
+        env_file=(".env", "../.env"),
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",
@@ -19,7 +21,10 @@ class Settings(BaseSettings):
     DEBUG: bool = True
     API_V1_PREFIX: str = "/api/v1"
     SECRET_KEY: str = "change-me-in-production"
-    ALLOWED_ORIGINS: str = "http://localhost:5173"
+    # 前端 dev 端口（唯一事实源在根 .env 的 FRONTEND_PORT；CORS 默认由它派生）
+    FRONTEND_PORT: int = 5173
+    # 显式 CORS 白名单（逗号分隔）；为空时由 FRONTEND_PORT 派生 http://localhost:<port>
+    ALLOWED_ORIGINS: str = ""
 
     # 数据库
     DATABASE_URL: str = "sqlite+aiosqlite:///./data/app.db"
@@ -53,7 +58,10 @@ class Settings(BaseSettings):
 
     @property
     def cors_origins(self) -> list[str]:
-        return [o.strip() for o in self.ALLOWED_ORIGINS.split(",") if o.strip()]
+        if self.ALLOWED_ORIGINS.strip():
+            return [o.strip() for o in self.ALLOWED_ORIGINS.split(",") if o.strip()]
+        # 未显式配置时，跟随前端 dev 端口（改根 .env FRONTEND_PORT 一处即可）
+        return [f"http://localhost:{self.FRONTEND_PORT}"]
 
     @property
     def is_prod(self) -> bool:
@@ -63,6 +71,23 @@ class Settings(BaseSettings):
     def upload_allowed_ext_set(self) -> set[str]:
         """上传允许的扩展名集合（小写、不含点）。"""
         return {e.strip().lower() for e in self.UPLOAD_ALLOWED_EXTENSIONS.split(",") if e.strip()}
+
+    @model_validator(mode="after")
+    def _validate_prod_security(self):
+        """生产环境安全护栏：默认密钥/密码拒绝启动（fail-fast），dev/test 不拦截。"""
+        if self.is_prod:
+            if self.SECRET_KEY in (
+                "change-me-in-production",
+                "change-me-to-a-random-32+bytes-string",
+            ):
+                raise ValueError(
+                    "生产环境（APP_ENV=prod）必须设置随机 SECRET_KEY（在 .env 中配置），拒绝启动"
+                )
+            if self.INIT_ADMIN_PASSWORD == "admin123":
+                raise ValueError(
+                    "生产环境（APP_ENV=prod）必须修改初始超管密码 INIT_ADMIN_PASSWORD，拒绝启动"
+                )
+        return self
 
 
 @lru_cache

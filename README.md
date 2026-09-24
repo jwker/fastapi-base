@@ -37,8 +37,7 @@ docker compose up -d --build
 docker compose up -d db redis
 
 cd backend
-cp .env.example .env
-# 修改 .env：DATABASE_URL=postgresql+asyncpg://fastapi:fastapi@localhost:5432/fastapi
+cp .env.example .env        # 连接串已统一在根 .env，此处按默认即可
 uv sync
 uv run alembic upgrade head
 PYTHONPATH=. uv run python scripts/init_db.py
@@ -53,9 +52,9 @@ pnpm dev   # http://localhost:5173，/api 自动代理到 8000
 ### 方式三：完全本地启动（无 Docker）
 
 ```bash
-# 需要本地 PostgreSQL 与 Redis
+# 需要本地 PostgreSQL 与 Redis（连接串在根 .env 配置）
 cd backend
-cp .env.example .env          # 按需修改 DATABASE_URL / REDIS_URL
+cp .env.example .env
 uv sync && uv run alembic upgrade head
 PYTHONPATH=. uv run python scripts/init_db.py
 PYTHONPATH=. uv run uvicorn app.main:app --reload --port 8000
@@ -67,7 +66,7 @@ pnpm install && pnpm dev
 
 > 前端 `.env` 不复制也能直接跑（代码内置默认值），按需自定义时才需要。
 
-> 本地无 PostgreSQL 时，可将 `DATABASE_URL` 改为 `sqlite+aiosqlite:///./data/app.db`（脚手架默认），
+> 本地无 PostgreSQL 时，可将根 `.env` 的 `DATABASE_URL` 改为 `sqlite+aiosqlite:///./data/app.db`（脚手架默认），
 > Redis 缺失时登录/刷新接口不可用，其余接口不受影响。
 
 ## 环境变量
@@ -78,14 +77,14 @@ pnpm install && pnpm dev
 | --- | --- | --- |
 | `APP_ENV` | dev / test / prod | dev |
 | `SECRET_KEY` | JWT 签名密钥（生产必改，≥32 字节） | change-me-in-production |
-| `DATABASE_URL` | 数据库连接串 | sqlite+aiosqlite:///./data/app.db |
-| `REDIS_URL` | Redis 连接串 | redis://localhost:6379/0 |
-| `ALLOWED_ORIGINS` | CORS 白名单（逗号分隔） | http://localhost:5173 |
+| `ALLOWED_ORIGINS` | CORS 白名单（逗号分隔，可选；不设时由根 .env 的 `FRONTEND_PORT` 自动派生 http://localhost:<port>） | 空（派生） |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | Access Token 有效期 | 15 |
 | `REFRESH_TOKEN_EXPIRE_DAYS` | Refresh Token 有效期 | 7 |
 | `RATE_LIMIT_PER_MINUTE` | 限流阈值 | 60 |
 | `INIT_ADMIN_USERNAME/PASSWORD` | 初始超管 | admin / admin123 |
 | `SENTRY_DSN` | Sentry 上报（可选） | 空 |
+
+> `DATABASE_URL` / `REDIS_URL`（数据库与 Redis 连接串）已统一移至根 `.env` 配置，此处不再设置。
 
 ### 前端 `frontend/.env`
 
@@ -93,6 +92,16 @@ pnpm install && pnpm dev
 | --- | --- | --- |
 | `VITE_APP_TITLE` | 应用标题 | FastAPI Base |
 | `VITE_API_BASE_URL` | API 基础路径 | /api |
+
+### 根 `.env`（端口与连接串唯一事实源）
+
+| 变量 | 说明 | 默认 |
+| --- | --- | --- |
+| `BACKEND_PORT` | 后端 API 端口（本地 dev、Docker 映射、vite 代理默认跟随） | 8000 |
+| `FRONTEND_PORT` | 前端 dev 端口（vite dev、后端 CORS 派生、Docker 映射、本地 E2E 跟随） | 5173 |
+| `POSTGRES_PORT` / `REDIS_PORT` | 中间件宿主映射端口（容器内固定 5432/6379，冲突才改） | 5433 / 6380 |
+| `DATABASE_URL` | 数据库连接串（混合模式用；全 Docker 时被 compose 注入覆盖） | — |
+| `REDIS_URL` | Redis 连接串（混合模式用；全 Docker 时被 compose 注入覆盖） | — |
 
 ## 默认账号
 
@@ -106,7 +115,7 @@ pnpm install && pnpm dev
 make dev-backend    # 后端热重载
 make dev-frontend   # 前端开发
 make test           # 后端测试
-make e2e            # 前端 E2E（Playwright，需后端 8000 与前端 5173 已启动）
+make e2e            # 前端 E2E（Playwright，需后端 8000 与前端已启动）
 make migrate        # 数据库迁移
 make init-db        # 初始化数据（幂等）
 make up             # Docker 一键启动

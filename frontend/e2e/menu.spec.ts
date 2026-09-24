@@ -1,7 +1,7 @@
 /**
  * E2E：动态路由 / 侧边菜单加载
  *
- * 前置：后端 8000 运行中（种子菜单：仪表盘/系统管理组/文件管理），前端 5173。
+ * 前置：后端（端口见根 .env BACKEND_PORT）运行中（种子菜单：仪表盘/系统管理组/文件管理），前端（端口见根 .env FRONTEND_PORT）。
  * admin 为超管，登录后应看到全部菜单并进入各管理页正常渲染。
  */
 import { test, expect } from '@playwright/test'

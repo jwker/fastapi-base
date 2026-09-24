@@ -41,14 +41,16 @@ services:
       SECRET_KEY: ${SECRET_KEY:-change-me-in-production-0123456789}
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-fastapi}:${POSTGRES_PASSWORD:-fastapi}@db:5432/${POSTGRES_DB:-fastapi}
       REDIS_URL: redis://redis:6379/0
-      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:5173}
+      # CORS 由后端根据 FRONTEND_PORT 派生；如需显式覆盖可设 ALLOWED_ORIGINS
+      FRONTEND_PORT: ${FRONTEND_PORT:-5173}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-}
       INIT_ADMIN_USERNAME: ${INIT_ADMIN_USERNAME:-admin}
       INIT_ADMIN_PASSWORD: ${INIT_ADMIN_PASSWORD:-admin123}
       SENTRY_DSN: ${SENTRY_DSN:-}
     volumes:
       - uploads_data:/app/uploads
     ports:
-      - "8000:8000"
+      - "${BACKEND_PORT:-8000}:8000"
     depends_on:
       db:
         condition: service_healthy
